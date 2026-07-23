@@ -53,14 +53,13 @@ export function PlatformInfoTiles() {
       <div className="absolute bottom-10 left-1/4 w-80 h-80 bg-accent-orange/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10">
-          <span className="inline-block text-primary font-extrabold tracking-widest text-xs mb-4 px-4 py-1.5 rounded-full bg-primary-light border border-primary/10">
-            {fa.platform.badge}
-          </span>
+        <div className="text-center mb-10 max-w-3xl mx-auto">
           <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
             {fa.platform.title}
           </h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">{fa.platform.subtitle}</p>
+          <p className="text-base sm:text-lg text-gray-600 leading-relaxed h-[4.5rem] sm:h-[4.75rem] overflow-hidden line-clamp-3 px-1">
+            {fa.platform.subtitle}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-7 justify-items-center">
@@ -89,7 +88,7 @@ export function PlatformInfoTiles() {
                     </div>
                     <div>
                       <p className="text-white/75 text-xs font-bold mb-1">{item.title}</p>
-                      <h3 className="text-xl font-extrabold leading-snug">{item.tagline}</h3>
+                      <h3 className="text-xl font-extrabold leading-snug line-clamp-3 min-h-[3.75rem]">{item.tagline}</h3>
                     </div>
                     <p className="text-white/65 text-xs font-medium">{fa.platform.flipHint}</p>
                   </div>
@@ -97,8 +96,8 @@ export function PlatformInfoTiles() {
                 backChild={
                   <div className="h-full w-full rounded-3xl bg-white p-5 flex flex-col border border-gray-100 shadow-xl text-start">
                     <span className="text-primary text-xs font-extrabold">{item.step} · {item.title}</span>
-                    <h3 className="text-lg font-extrabold text-gray-900 mt-2 mb-3 leading-snug">{item.tagline}</h3>
-                    <p className="text-gray-600 text-sm leading-relaxed flex-1">{item.description}</p>
+                    <h3 className="text-lg font-extrabold text-gray-900 mt-2 mb-3 leading-snug line-clamp-2">{item.tagline}</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed flex-1 overflow-hidden line-clamp-6">{item.description}</p>
                     <p className="text-xs text-gray-400 mt-3 font-medium">{fa.platform.comingSoon}</p>
                   </div>
                 }

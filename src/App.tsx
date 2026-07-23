@@ -8,6 +8,7 @@ import { Profile } from './pages/Profile';
 import { Onboarding } from './pages/Onboarding';
 import { EventDetail } from './pages/EventDetail';
 import { MyEvents } from './pages/MyEvents';
+import { AdminEvents } from './pages/AdminEvents';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/create-event" element={<CreateEvent />} />
             <Route path="/event/:id" element={<EventDetail />} />
             <Route path="/profile" element={<Profile />} />
@@ -32,5 +34,3 @@ function App() {
 }
 
 export default App;
-
-// Trigger Vercel Build

@@ -34,8 +34,8 @@ export function RealConnectionsSection() {
       className="relative py-14 sm:py-20 overflow-hidden transition-colors duration-300"
       style={{
         background: `linear-gradient(135deg,
-          color-mix(in srgb, #F97316 ${orangeWeight * 100}%, #8B5CF6 ${purpleWeight * 100}%),
-          color-mix(in srgb, #EA580C ${orangeWeight * 100}%, #6D28D9 ${purpleWeight * 100}%)
+          color-mix(in srgb, #FF6B2C ${orangeWeight * 100}%, #C026D3 ${purpleWeight * 100}%),
+          color-mix(in srgb, #FF3D71 ${orangeWeight * 100}%, #200443 ${purpleWeight * 100}%)
         )`,
       }}
     >

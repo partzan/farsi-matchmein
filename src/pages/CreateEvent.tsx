@@ -87,7 +87,8 @@ export function CreateEvent() {
           location: city, // Storing city as location
           datetime: new Date(`${date}T${time}`).toISOString(),
           targeted_interest_ids: targetedInterests.length === 3 ? targetedInterests : null,
-          gender_restriction: genderRestriction
+          gender_restriction: genderRestriction,
+          status: 'voting',
         })
         .select()
         .single();

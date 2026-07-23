@@ -38,7 +38,7 @@ export function HeroBackground() {
             loaded ? 'opacity-60 translate-y-0 scale-100' : 'opacity-0 translate-y-full scale-110'
           }`}
           style={{
-            background: 'radial-gradient(ellipse at bottom, rgba(139, 92, 246, 0.75) 0%, rgba(249, 115, 22, 0.45) 35%, rgba(239, 68, 68, 0.2) 55%, transparent 80%)',
+            background: 'radial-gradient(ellipse at bottom, rgba(192, 38, 211, 0.7) 0%, rgba(109, 40, 217, 0.45) 25%, rgba(255, 107, 44, 0.4) 50%, rgba(0, 212, 232, 0.22) 70%, transparent 85%)',
             filter: 'blur(100px)',
           }}
         />
