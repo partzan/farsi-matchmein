@@ -120,7 +120,7 @@ export function EventDetail() {
     if (!event || event.host_id !== currentUserId) return;
 
     const goingCount = rsvps.filter(r => r.status === 'going').length;
-    let confirmMsg = fa.eventDetail.confirmDelete;
+    let confirmMsg: string = fa.eventDetail.confirmDelete;
     if (goingCount > 0) {
       confirmMsg = `${goingCount} ${fa.eventDetail.confirmDeleteWithAttendees}`;
     }
