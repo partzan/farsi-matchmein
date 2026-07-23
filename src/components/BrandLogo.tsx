@@ -4,8 +4,6 @@ import { fa } from '../locale/fa';
 type BrandLogoProps = {
   to?: string;
   className?: string;
-  /** Show Persian brand name beside the Hi Ev mark */
-  showWordmark?: boolean;
   size?: 'sm' | 'md' | 'lg';
 };
 
@@ -18,22 +16,14 @@ const sizes = {
 export function BrandLogo({
   to = '/',
   className = '',
-  showWordmark = true,
   size = 'md',
 }: BrandLogoProps) {
   const content = (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <img
-        src="/images/hievent-logo.png"
-        alt={fa.brandEn}
-        className={`${sizes[size]} w-auto object-contain`}
-      />
-      {showWordmark && (
-        <span className="font-extrabold tracking-tight text-white text-base sm:text-lg leading-none border-s border-white/20 ps-2.5">
-          {fa.brand}
-        </span>
-      )}
-    </span>
+    <img
+      src="/images/hievent-logo.png"
+      alt={fa.brandEn}
+      className={`${sizes[size]} w-auto object-contain ${className}`}
+    />
   );
 
   if (!to) return content;
