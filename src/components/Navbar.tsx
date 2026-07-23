@@ -120,8 +120,8 @@ export function Navbar() {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="sm:hidden border-t border-gray-800 bg-gray-900 shadow-lg absolute w-full right-0 z-40">
-          <div className="px-4 pt-4 pb-6 space-y-2 text-right">
+        <div className="sm:hidden border-t border-gray-800 bg-gray-900 shadow-lg absolute w-full end-0 z-40">
+          <div className="px-4 pt-4 pb-6 space-y-2 text-start">
             <Link to="/events" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">{fa.nav.events}</Link>
             {user ? (
               <>
@@ -130,7 +130,7 @@ export function Navbar() {
                   <Link to="/create-event" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">{fa.nav.createEvent}</Link>
                 )}
                 <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">{fa.nav.profile}</Link>
-                <button onClick={handleLogout} className="w-full text-right px-3 py-3 text-base font-medium text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded-lg">
+                <button onClick={handleLogout} className="w-full text-start px-3 py-3 text-base font-medium text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded-lg">
                   {fa.nav.logout}
                 </button>
               </>

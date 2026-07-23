@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { MapPin } from 'lucide-react';
 import { InterestPicker } from '../components/InterestPicker';
+import { fa } from '../locale/fa';
 
 type Category = {
   id: string;
@@ -70,7 +71,7 @@ export function Onboarding() {
   const handleGetLocation = () => {
     setLocating(true);
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser.');
+      setError(fa.onboarding.errors.geoNotSupported);
       setLocating(false);
       return;
     }
@@ -99,7 +100,7 @@ export function Onboarding() {
       },
       (error) => {
         console.error(error);
-        setError('Unable to retrieve your location. Please enter your city manually.');
+        setError(fa.onboarding.errors.geoFailed);
         setLocating(false);
       }
     );
@@ -111,20 +112,20 @@ export function Onboarding() {
     setIsLoading(true);
 
     if (selectedInterests.length < 5 || selectedInterests.length > 15) {
-      setError("Please select between 5 and 15 interests.");
+      setError(fa.onboarding.errors.interestsRange);
       setIsLoading(false);
       return;
     }
 
     if (!displayName || !city) {
-      setError("Please provide a display name and your city.");
+      setError(fa.onboarding.errors.requiredFields);
       setIsLoading(false);
       return;
     }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("You must be logged in to complete onboarding.");
+      if (!user) throw new Error(fa.onboarding.errors.notLoggedIn);
 
       // Format location for PostGIS if we have coordinates
       const locationWKT = coordinates ? `SRID=4326;POINT(${coordinates.lng} ${coordinates.lat})` : null;
@@ -171,7 +172,7 @@ export function Onboarding() {
       navigate('/discover');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Something went wrong during onboarding.");
+      setError(err.message || fa.onboarding.errors.genericFail);
     } finally {
       setIsLoading(false);
     }
@@ -181,10 +182,10 @@ export function Onboarding() {
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-10">
         <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-4">
-          Complete Your Profile
+          {fa.onboarding.title}
         </h1>
         <p className="text-lg text-gray-600">
-          Tell us a bit about yourself so we can find your best matches.
+          {fa.onboarding.subtitle}
         </p>
       </div>
 
@@ -199,24 +200,24 @@ export function Onboarding() {
           {/* Basic Info */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">Display Name</label>
+              <label className="block text-sm font-bold text-gray-900 mb-2">{fa.onboarding.displayName}</label>
               <input 
                 type="text" 
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
-                placeholder="What should we call you?"
+                placeholder={fa.onboarding.displayNamePlaceholder}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-bold text-gray-900 mb-2">Short Bio</label>
+              <label className="block text-sm font-bold text-gray-900 mb-2">{fa.onboarding.shortBio}</label>
               <textarea 
                 value={bio}
                 onChange={e => setBio(e.target.value)}
                 rows={3}
-                placeholder="A little bit about who you are..."
+                placeholder={fa.onboarding.bioPlaceholder}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
               />
             </div>
@@ -224,7 +225,7 @@ export function Onboarding() {
 
           {/* Location */}
           <div className="pt-4 border-t border-gray-100">
-            <label className="block text-sm font-bold text-gray-900 mb-2">Where are you based?</label>
+            <label className="block text-sm font-bold text-gray-900 mb-2">{fa.onboarding.basedWhere}</label>
             <div className="flex flex-col sm:flex-row gap-3 mb-3">
               <button
                 type="button"
@@ -237,28 +238,28 @@ export function Onboarding() {
                 }`}
               >
                 <MapPin className={`h-5 w-5 ${coordinates ? 'text-primary' : 'text-gray-500'}`} />
-                {locating ? 'Locating...' : coordinates ? 'Location Saved' : 'Detect Location'}
+                {locating ? fa.common.locating : coordinates ? fa.onboarding.locationSavedButton : fa.common.detectLocation}
               </button>
               <input 
                 type="text" 
                 value={city}
                 onChange={e => setCity(e.target.value)}
-                placeholder="City Name (e.g., Austin, TX)"
+                placeholder={fa.onboarding.cityPlaceholder}
                 className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 required
               />
             </div>
             <p className="text-sm text-gray-500">
-              {coordinates ? 'We have your exact location for finding nearby events!' : 'Detect location for better matching, or just type your city.'}
+              {coordinates ? fa.onboarding.locationSaved : fa.onboarding.detectHint}
             </p>
           </div>
 
           {/* Interests */}
           <div className="pt-4 border-t border-gray-100">
             <div className="flex justify-between items-end mb-3">
-              <label className="block text-sm font-bold text-gray-900">What are your interests?</label>
+              <label className="block text-sm font-bold text-gray-900">{fa.onboarding.interestsTitle}</label>
               <span className={`text-sm font-medium ${selectedInterests.length >= 5 && selectedInterests.length <= 15 ? 'text-primary' : 'text-gray-500'}`}>
-                {selectedInterests.length} / 15 selected
+                {selectedInterests.length} / 15 {fa.onboarding.selected}
               </span>
             </div>
             
@@ -268,33 +269,33 @@ export function Onboarding() {
               onToggle={toggleInterest} 
               maxSelections={15} 
             />
-            <p className="mt-3 text-sm text-gray-500">Select between 5 and 15 categories to continue.</p>
+            <p className="mt-3 text-sm text-gray-500">{fa.onboarding.interestsHint}</p>
           </div>
 
           {/* Match Preferences */}
           <div className="pt-8 border-t border-gray-100">
-            <h2 className="text-xl font-extrabold text-gray-900 mb-6">Match Preferences</h2>
+            <h2 className="text-xl font-extrabold text-gray-900 mb-6">{fa.onboarding.matchPreferences}</h2>
             
             <div className="space-y-6">
               {/* Gender */}
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">My Gender <span className="text-gray-400 font-normal">(Optional)</span></label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">{fa.onboarding.myGender} <span className="text-gray-400 font-normal">{fa.common.optional}</span></label>
                 <select 
                   value={gender} 
                   onChange={e => setGender(e.target.value)}
                   className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 >
-                  <option value="">Skip</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="non_binary">Non-binary</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
+                  <option value="">{fa.common.skip}</option>
+                  <option value="male">{fa.common.male}</option>
+                  <option value="female">{fa.common.female}</option>
+                  <option value="non_binary">{fa.common.nonBinary}</option>
+                  <option value="prefer_not_to_say">{fa.common.preferNotToSay}</option>
                 </select>
               </div>
 
               {/* Show me */}
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">Show me</label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">{fa.onboarding.showMe}</label>
                 <div className="flex flex-wrap gap-2">
                   {['everyone', 'male', 'female', 'non_binary'].map(opt => (
                     <button
@@ -317,7 +318,7 @@ export function Onboarding() {
                           : 'bg-white border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                       }`}
                     >
-                      {opt === 'everyone' ? 'Everyone' : opt === 'male' ? 'Male' : opt === 'female' ? 'Female' : 'Non-binary'}
+                      {opt === 'everyone' ? fa.common.everyone : opt === 'male' ? fa.common.male : opt === 'female' ? fa.common.female : fa.common.nonBinary}
                     </button>
                   ))}
                 </div>
@@ -325,13 +326,13 @@ export function Onboarding() {
 
               {/* When are you usually free? */}
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">When are you usually free? <span className="text-gray-400 font-normal">(Optional)</span></label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">{fa.onboarding.freeTime} <span className="text-gray-400 font-normal">{fa.common.optional}</span></label>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    {id: 'weekday_morning', label: 'Weekday mornings'},
-                    {id: 'weekday_afternoon', label: 'Weekday afternoons'},
-                    {id: 'weekday_evening', label: 'Weekday evenings'},
-                    {id: 'weekend', label: 'Weekends'}
+                    {id: 'weekday_morning', label: fa.onboarding.weekdayMornings},
+                    {id: 'weekday_afternoon', label: fa.onboarding.weekdayAfternoons},
+                    {id: 'weekday_evening', label: fa.onboarding.weekdayEvenings},
+                    {id: 'weekend', label: fa.onboarding.weekends}
                   ].map(opt => (
                     <button
                       key={opt.id}
@@ -353,7 +354,7 @@ export function Onboarding() {
 
               {/* What are you looking for? */}
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">What are you looking for?</label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">{fa.onboarding.lookingFor}</label>
                 <div className="flex flex-wrap gap-2">
                   {['friends', 'events', 'dating'].map(opt => (
                     <button
@@ -371,7 +372,7 @@ export function Onboarding() {
                           : 'bg-white border-gray-200 text-gray-600 hover:border-primary hover:text-primary'
                       }`}
                     >
-                      {opt === 'friends' ? 'Friends' : opt === 'events' ? 'Events' : 'Dating'}
+                      {opt === 'friends' ? fa.onboarding.friends : opt === 'events' ? fa.onboarding.eventsOption : fa.onboarding.dating}
                     </button>
                   ))}
                 </div>
@@ -385,7 +386,7 @@ export function Onboarding() {
               disabled={isLoading || selectedInterests.length < 3}
               className="w-full bg-primary hover:bg-primary-dark disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-4 rounded-full font-bold text-lg transition-colors shadow-sm"
             >
-              {isLoading ? 'Saving...' : 'Save & Continue'}
+              {isLoading ? fa.onboarding.saving : fa.onboarding.saveContinue}
             </button>
           </div>
         </form>

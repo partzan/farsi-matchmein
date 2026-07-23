@@ -50,7 +50,7 @@ export function SignupModal({ open, onClose, onSuccess }: SignupModalProps) {
       <div className="relative bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-md p-8 text-right">
         <button
           onClick={onClose}
-          className="absolute top-4 left-4 text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+          className="absolute top-4 start-4 text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
           aria-label="بستن"
         >
           <X className="w-5 h-5" />

@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { getAvatarUrl } from '../lib/avatars';
 import { MapPin } from 'lucide-react';
 import { InterestPicker } from '../components/InterestPicker';
+import { fa } from '../locale/fa';
+import { categoryFa } from '../locale/categoriesFa';
 
 type Category = { id: string; name: string; emoji?: string; group_name: string };
 
@@ -81,7 +83,7 @@ export function Profile() {
   const handleGetLocation = () => {
     setLocating(true);
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
+      alert(fa.profile.errors.geoNotSupported);
       setLocating(false);
       return;
     }
@@ -102,7 +104,7 @@ export function Profile() {
       },
       (error) => {
         console.error(error);
-        alert('Unable to retrieve your location. Please enter your city manually.');
+        alert(fa.profile.errors.geoFailed);
         setLocating(false);
       }
     );
@@ -113,18 +115,18 @@ export function Profile() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file.');
+      alert(fa.profile.errors.imageOnly);
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('File is too large. Maximum size is 5MB.');
+      alert(fa.profile.errors.fileTooLarge);
       return;
     }
 
     setUploadingAvatar(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) throw new Error(fa.profile.errors.notAuthenticated);
 
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Math.random()}.${fileExt}`;
@@ -143,7 +145,7 @@ export function Profile() {
       setAvatarUrl(publicUrl);
     } catch (err: any) {
       console.error(err);
-      alert('Failed to upload image: ' + err.message);
+      alert(fa.profile.errors.uploadFailed + err.message);
     } finally {
       setUploadingAvatar(false);
     }
@@ -153,7 +155,7 @@ export function Profile() {
     setHighPriorityInterests(prev => {
       if (prev.includes(id)) return prev.filter(c => c !== id);
       if (prev.length >= 3) {
-        alert("You can only select up to 3 High Priority interests.");
+        alert(fa.profile.errors.maxHighPriority);
         return prev;
       }
       return [...prev, id];
@@ -173,17 +175,17 @@ export function Profile() {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      if (!user) throw new Error(fa.profile.errors.notAuthenticated);
 
       if (highPriorityInterests.length === 0) {
-        throw new Error("Please select at least 1 High Priority interest (max 3).");
+        throw new Error(fa.profile.errors.needHighPriority);
       }
       const totalInterests = highPriorityInterests.length + normalPriorityInterests.length;
       if (totalInterests < 5 || totalInterests > 20) {
-        throw new Error("Please select between 5 and 20 total interests on Step 2.");
+        throw new Error(fa.profile.errors.interestsRange);
       }
       if (!displayName || !city) {
-        throw new Error("Display Name and City are required on Step 1.");
+        throw new Error(fa.profile.errors.requiredFields);
       }
 
       const locationWKT = coordinates ? `SRID=4326;POINT(${coordinates.lng} ${coordinates.lat})` : undefined;
@@ -219,22 +221,22 @@ export function Profile() {
       navigate('/events');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to save profile');
+      setError(err.message || fa.profile.errors.saveFailed);
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="text-center py-20 text-gray-500">Loading profile...</div>;
+  if (loading) return <div className="text-center py-20 text-gray-500">{fa.profile.loading}</div>;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-extrabold text-gray-900">Edit Profile</h1>
-            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1" title="Monthly votes available for new events">
-              🎟 {voteTokens}/4 Votes
+            <h1 className="text-3xl font-extrabold text-gray-900">{fa.profile.title}</h1>
+            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1" title={fa.profile.votesTooltip}>
+              🎟 {voteTokens}/4 {fa.profile.votes}
             </span>
           </div>
           <div className="flex gap-2">
@@ -261,7 +263,7 @@ export function Profile() {
               <div className="flex flex-col items-center sm:items-start sm:flex-row gap-6">
                 <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                   <div className="w-32 h-32 bg-gray-200 rounded-full flex-shrink-0 overflow-hidden relative border-4 border-white shadow-sm">
-                    <img src={avatarUrl || getAvatarUrl('', 'default')} alt="Avatar" className={`w-full h-full object-cover transition-opacity ${uploadingAvatar ? 'opacity-50' : 'group-hover:opacity-75'}`} />
+                    <img src={avatarUrl || getAvatarUrl('', 'default')} alt={fa.profile.uploadPhoto} className={`w-full h-full object-cover transition-opacity ${uploadingAvatar ? 'opacity-50' : 'group-hover:opacity-75'}`} />
                     {uploadingAvatar && (
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -269,44 +271,44 @@ export function Profile() {
                     )}
                   </div>
                   <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-white text-xs font-bold px-2 text-center">Upload Photo</span>
+                    <span className="text-white text-xs font-bold px-2 text-center">{fa.profile.uploadPhoto}</span>
                   </div>
                   <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
                 </div>
                 <div className="flex-1 w-full space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Display Name</label>
+                    <label className="block text-sm font-bold text-gray-900 mb-2">{fa.profile.displayName}</label>
                     <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Gender (Optional)</label>
+                    <label className="block text-sm font-bold text-gray-900 mb-2">{fa.profile.genderOptional}</label>
                     <select value={gender} onChange={e => setGender(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
-                      <option value="">Skip</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="non_binary">Non-binary</option>
-                      <option value="prefer_not_to_say">Prefer not to say</option>
+                      <option value="">{fa.common.skip}</option>
+                      <option value="male">{fa.common.male}</option>
+                      <option value="female">{fa.common.female}</option>
+                      <option value="non_binary">{fa.common.nonBinary}</option>
+                      <option value="prefer_not_to_say">{fa.common.preferNotToSay}</option>
                     </select>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">Location</label>
+                <label className="block text-sm font-bold text-gray-900 mb-2">{fa.profile.location}</label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button type="button" onClick={handleGetLocation} disabled={locating} className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold border-2 transition-colors ${coordinates ? 'bg-primary-light border-primary text-primary' : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300'}`}>
                     <MapPin className={`h-5 w-5 ${coordinates ? 'text-primary' : 'text-gray-500'}`} />
-                    {locating ? 'Locating...' : 'Detect Location'}
+                    {locating ? fa.common.locating : fa.common.detectLocation}
                   </button>
-                  <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City Name" className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" required />
+                  <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder={fa.profile.cityPlaceholder} className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" required />
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between items-end mb-2">
-                  <label className="block text-sm font-bold text-gray-900">In 20 words, what describes you?</label>
-                  <span className={`text-sm font-bold flex-shrink-0 ml-4 ${bioWordCount > 20 ? 'text-red-500' : 'text-gray-500'}`}>
-                    {bioWordCount}/20 words
+                  <label className="block text-sm font-bold text-gray-900">{fa.profile.bioQuestion}</label>
+                  <span className={`text-sm font-bold flex-shrink-0 ms-4 ${bioWordCount > 20 ? 'text-red-500' : 'text-gray-500'}`}>
+                    {bioWordCount}/20 {fa.profile.words}
                   </span>
                 </div>
                 <textarea 
@@ -329,17 +331,17 @@ export function Profile() {
           {step === 2 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="flex justify-between items-end mb-4">
-                <label className="block text-xl font-bold text-gray-900">What are your interests?</label>
+                <label className="block text-xl font-bold text-gray-900">{fa.profile.interestsTitle}</label>
                 <span className={`text-sm font-medium ${highPriorityInterests.length + normalPriorityInterests.length >= 5 && highPriorityInterests.length + normalPriorityInterests.length <= 20 ? 'text-primary' : 'text-gray-500'}`}>
-                  {highPriorityInterests.length + normalPriorityInterests.length} / 20 selected
+                  {highPriorityInterests.length + normalPriorityInterests.length} / 20 {fa.profile.selected}
                 </span>
               </div>
               
-              <p className="text-gray-500 mb-6">First, select up to 3 <strong className="text-primary">High Priority</strong> interests. These power our Match Making Engine. Additional selections will be saved as <strong className="text-gray-700">Normal</strong> interests.</p>
+              <p className="text-gray-500 mb-6">{fa.profile.interestsHelpPre} <strong className="text-primary">{fa.profile.interestsHelpHigh}</strong> {fa.profile.interestsHelpMid} <strong className="text-gray-700">{fa.profile.interestsHelpNormal}</strong> {fa.profile.interestsHelpPost}</p>
               
               <div className="mb-4 bg-primary/10 rounded-xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-primary-dark">High Priority Favorites</span>
+                  <span className="font-bold text-primary-dark">{fa.profile.highPriorityFavorites}</span>
                   <span className="font-mono bg-white px-2 py-1 rounded text-primary-dark font-bold text-sm">
                     {highPriorityInterests.length}/3
                   </span>
@@ -354,19 +356,19 @@ export function Profile() {
                         onClick={() => toggleHighPriorityInterest(c.id)}
                         className="px-4 py-2 bg-primary text-white rounded-full text-sm font-bold shadow-sm flex items-center gap-2 hover:bg-primary-dark transition-colors"
                       >
-                        {c.emoji} {c.name} <span className="opacity-70">✕</span>
+                        {c.emoji} {categoryFa(c.name)} <span className="opacity-70">✕</span>
                       </button>
                     );
                   })}
                   {highPriorityInterests.length === 0 && (
-                    <span className="text-sm text-primary-dark/70 italic">Select your top 3 from the categories below</span>
+                    <span className="text-sm text-primary-dark/70 italic">{fa.profile.selectTop3}</span>
                   )}
                 </div>
               </div>
 
               <div className="mb-4 bg-gray-100 rounded-xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-gray-700">Normal Favorites</span>
+                  <span className="font-bold text-gray-700">{fa.profile.normalFavorites}</span>
                   <span className="font-mono bg-white px-2 py-1 rounded text-gray-700 font-bold text-sm">
                     {normalPriorityInterests.length}
                   </span>
@@ -381,12 +383,12 @@ export function Profile() {
                         onClick={() => toggleNormalPriorityInterest(c.id)}
                         className="px-3 py-1.5 bg-gray-800 text-white rounded-full text-xs font-medium shadow-sm flex items-center gap-1 hover:bg-gray-900 transition-colors"
                       >
-                        {c.emoji} {c.name} <span className="opacity-70">✕</span>
+                        {c.emoji} {categoryFa(c.name)} <span className="opacity-70">✕</span>
                       </button>
                     );
                   })}
                   {normalPriorityInterests.length === 0 && (
-                    <span className="text-sm text-gray-500 italic">Select additional interests</span>
+                    <span className="text-sm text-gray-500 italic">{fa.profile.selectAdditional}</span>
                   )}
                 </div>
               </div>
@@ -411,16 +413,16 @@ export function Profile() {
           <div className="pt-6 border-t border-gray-100 flex gap-4">
             {step > 1 && (
               <button type="button" onClick={() => setStep(s => s - 1)} className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full font-bold transition-colors">
-                Back
+                {fa.common.back}
               </button>
             )}
             {step < 2 ? (
               <button type="button" onClick={() => setStep(s => s + 1)} className="flex-[2] bg-primary hover:bg-primary-dark text-white py-4 rounded-full font-bold transition-colors shadow-sm">
-                Next
+                {fa.common.next}
               </button>
             ) : (
               <button type="button" onClick={handleSave} disabled={saving} className="flex-[2] bg-primary hover:bg-primary-dark text-white py-4 rounded-full font-bold transition-colors shadow-sm disabled:opacity-50">
-                {saving ? 'Saving...' : 'Save changes'}
+                {saving ? fa.common.saving : fa.profile.saveChanges}
               </button>
             )}
           </div>

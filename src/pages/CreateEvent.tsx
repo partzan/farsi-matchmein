@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCategoryColor } from '../lib/colors';
 import { InterestPicker } from '../components/InterestPicker';
+import { fa } from '../locale/fa';
+import { categoryFa } from '../locale/categoriesFa';
 
 type Category = { id: string; name: string; emoji?: string; group_name?: string };
 
@@ -49,7 +51,7 @@ export function CreateEvent() {
 
   const handleNext = () => {
     if (step === 3 && targetedInterests.length !== 3) {
-      setError("You must select exactly 3 targeted interests.");
+      setError(fa.createEvent.errorExactly3);
       return;
     }
     setError(null);
@@ -70,7 +72,7 @@ export function CreateEvent() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Must be logged in to create an event.");
+      if (!user) throw new Error(fa.createEvent.mustLoginError);
 
       const selectedCategory = categories.find(c => c.id === categoryId);
       const generatedTitle = `${selectedCategory?.name || 'Event'} in ${city}`;
@@ -107,21 +109,21 @@ export function CreateEvent() {
       navigate(`/event/${data.id}`);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Failed to publish event.");
+      setError(err.message || fa.createEvent.publishFailedError);
       setLoading(false);
     }
   };
 
   const getStepIndicator = () => {
-    if (step === 5) return 'Review';
-    return `Step ${step} of 4`;
+    if (step === 5) return fa.createEvent.stepReview;
+    return `${fa.createEvent.stepPrefix} ${step} ${fa.createEvent.stepOf}`;
   };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900">Create an Event</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900">{fa.createEvent.title}</h1>
           <span className="text-primary font-bold bg-primary-light px-3 py-1 rounded-full text-sm">
             {getStepIndicator()}
           </span>
@@ -133,8 +135,8 @@ export function CreateEvent() {
           {/* Frame 1: Category */}
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <label className="block text-xl font-bold text-gray-900 mb-4">Choose a Category</label>
-              <p className="text-gray-500 text-sm mb-4">Navigate the skill tree — pick your event&apos;s specialty at the deepest level.</p>
+              <label className="block text-xl font-bold text-gray-900 mb-4">{fa.createEvent.chooseCategory}</label>
+              <p className="text-gray-500 text-sm mb-4">{fa.createEvent.categoryHint}</p>
               <InterestPicker
                 categories={categories}
                 selectedInterests={categoryId ? [categoryId] : []}
@@ -149,17 +151,17 @@ export function CreateEvent() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">Date</label>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">{fa.createEvent.dateLabel}</label>
                   <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">Time</label>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">{fa.createEvent.timeLabel}</label>
                   <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all" required />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">City</label>
-                <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="e.g., Tehran, NYC" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all" required />
+                <label className="block text-sm font-bold text-gray-900 mb-2">{fa.createEvent.cityLabel}</label>
+                <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder={fa.createEvent.cityPlaceholder} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all" required />
               </div>
             </div>
           )}
@@ -169,25 +171,25 @@ export function CreateEvent() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                 <div className="animate-in fade-in slide-in-from-top-2">
                   <div className="mb-6">
-                    <label className="block text-xl font-bold text-gray-900 mb-2">Gender Restriction</label>
+                    <label className="block text-xl font-bold text-gray-900 mb-2">{fa.createEvent.genderRestriction}</label>
                     <select 
                       value={genderRestriction}
                       onChange={e => setGenderRestriction(e.target.value)}
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all font-bold"
                     >
-                      <option value="everyone">Everyone</option>
-                      <option value="female_only">👩 Women Only</option>
-                      <option value="male_only">👨 Men Only</option>
+                      <option value="everyone">{fa.createEvent.everyone}</option>
+                      <option value="female_only">👩 {fa.events.womenOnly}</option>
+                      <option value="male_only">👨 {fa.events.menOnly}</option>
                     </select>
                   </div>
                   
                   <div className="flex justify-between items-end mb-4">
                     <div>
-                      <label className="block text-xl font-bold text-gray-900">Target Audience</label>
-                      <p className="text-gray-500 mt-1">Select exactly 3 favorites to power the Match Making Engine.</p>
+                      <label className="block text-xl font-bold text-gray-900">{fa.createEvent.targetAudience}</label>
+                      <p className="text-gray-500 mt-1">{fa.createEvent.audienceHint}</p>
                     </div>
                     <span className={`text-sm font-bold ${targetedInterests.length === 3 ? 'text-primary' : 'text-gray-500'}`}>
-                      {targetedInterests.length} / 3 selected
+                      {targetedInterests.length} / 3 {fa.createEvent.selected}
                     </span>
                   </div>
                   
@@ -202,7 +204,7 @@ export function CreateEvent() {
                             onClick={() => toggleTargetedInterest(c.id)}
                             className="px-4 py-2 bg-primary text-white rounded-full text-sm font-bold shadow-sm flex items-center gap-2 hover:bg-primary-dark transition-colors"
                           >
-                            {c.emoji} {c.name} <span className="opacity-70">✕</span>
+                            {c.emoji} {categoryFa(c.name)} <span className="opacity-70">✕</span>
                           </button>
                         );
                       })}
@@ -224,9 +226,9 @@ export function CreateEvent() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
               <div>
                 <div className="flex justify-between items-end mb-2">
-                  <label className="block text-sm font-bold text-gray-900">In a few words — why should someone come, and who's it for?</label>
-                  <span className={`text-sm font-bold flex-shrink-0 ml-4 ${wordCount > 10 ? 'text-red-500' : wordCount === 10 ? 'text-primary' : 'text-gray-500'}`}>
-                    {wordCount}/10 words
+                  <label className="block text-sm font-bold text-gray-900">{fa.createEvent.pitchLabel}</label>
+                  <span className={`text-sm font-bold flex-shrink-0 ms-4 ${wordCount > 10 ? 'text-red-500' : wordCount === 10 ? 'text-primary' : 'text-gray-500'}`}>
+                    {wordCount}/10 {fa.createEvent.words}
                   </span>
                 </div>
                 <textarea 
@@ -239,7 +241,7 @@ export function CreateEvent() {
                       setPitch(newPitch);
                     }
                   }} 
-                  placeholder="e.g. Casual chess night for beginners who want to improve." 
+                  placeholder={fa.createEvent.pitchPlaceholder} 
                   className={`w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none ${
                     wordCount > 10 ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-primary'
                   }`}
@@ -252,7 +254,7 @@ export function CreateEvent() {
           {/* Frame 5: Review */}
           {step === 5 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <h2 className="text-xl font-extrabold text-gray-900">Review your Event</h2>
+              <h2 className="text-xl font-extrabold text-gray-900">{fa.createEvent.reviewTitle}</h2>
               <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
                 <div className="mb-4">
                   {(() => {
@@ -260,7 +262,7 @@ export function CreateEvent() {
                     const color = getCategoryColor(catName);
                     return (
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-bold ${color.bg} ${color.text}`}>
-                        <span className="flex-shrink-0">★</span> {catName}
+                        <span className="flex-shrink-0">★</span> {categoryFa(catName)}
                       </span>
                     );
                   })()}
@@ -269,12 +271,12 @@ export function CreateEvent() {
                   {categories.find(c => c.id === categoryId)?.name || 'Event'} in {city}
                 </h3>
                 <p className="text-gray-500 font-bold mb-4">
-                  {date && time ? new Date(`${date}T${time}`).toLocaleString() : 'No date set'}
+                  {date && time ? new Date(`${date}T${time}`).toLocaleString('fa-IR') : fa.createEvent.noDateSet}
                 </p>
                 <p className="text-gray-700 mb-4 whitespace-pre-wrap text-lg leading-relaxed italic">"{pitch}"</p>
                 
                 <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm font-bold text-gray-600 mb-2">Audience Targeting:</p>
+                  <p className="text-sm font-bold text-gray-600 mb-2">{fa.createEvent.audienceTargeting}</p>
                   {targetedInterests.length === 3 ? (
                     <div className="flex flex-wrap gap-2">
                       {targetedInterests.map(id => {
@@ -282,18 +284,18 @@ export function CreateEvent() {
                         const color = getCategoryColor(cat?.name || '');
                         return (
                           <span key={id} className={`px-2 py-1 rounded-sm text-xs font-bold ${color.bg} ${color.text}`}>
-                            {cat?.name}
+                            {categoryFa(cat?.name)}
                           </span>
                         );
                       })}
                     </div>
                   ) : (
-                    <p className="text-sm text-red-500">Must select exactly 3 interests</p>
+                    <p className="text-sm text-red-500">{fa.createEvent.mustSelect3}</p>
                   )}
                   
-                  <p className="text-sm font-bold text-gray-600 mt-4 mb-2">Gender Restriction:</p>
+                  <p className="text-sm font-bold text-gray-600 mt-4 mb-2">{fa.createEvent.genderRestriction}:</p>
                   <p className="text-gray-900 font-bold">
-                    {genderRestriction === 'everyone' ? 'Everyone' : genderRestriction === 'female_only' ? '👩 Women Only' : '👨 Men Only'}
+                    {genderRestriction === 'everyone' ? fa.createEvent.everyone : genderRestriction === 'female_only' ? `👩 ${fa.events.womenOnly}` : `👨 ${fa.events.menOnly}`}
                   </p>
                 </div>
               </div>
@@ -303,7 +305,7 @@ export function CreateEvent() {
           <div className="pt-6 border-t border-gray-100 flex gap-4">
             {step > 1 && (
               <button type="button" onClick={handleBack} className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full font-bold transition-colors">
-                Back
+                {fa.interestPicker.back}
               </button>
             )}
             {step < 5 ? (
@@ -318,7 +320,7 @@ export function CreateEvent() {
                 }
                 className="flex-[2] bg-primary hover:bg-primary-dark text-white py-4 rounded-full font-bold transition-colors shadow-sm disabled:opacity-50"
               >
-                Continue
+                {fa.createEvent.continueBtn}
               </button>
             ) : (
               <button 
@@ -327,7 +329,7 @@ export function CreateEvent() {
                 disabled={loading}
                 className="flex-[2] bg-primary hover:bg-primary-dark text-white py-4 rounded-full font-bold transition-colors shadow-sm disabled:opacity-50"
               >
-                {loading ? 'Publishing...' : 'Publish Event'}
+                {loading ? fa.createEvent.publishing : fa.createEvent.publishEvent}
               </button>
             )}
           </div>

@@ -290,10 +290,10 @@ export function Events() {
                     {event.image_url ? (
                       <img src={event.image_url} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">No Image</div>
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">{fa.events.noImage}</div>
                     )}
                     
-                    <div className="absolute top-3 left-3 flex flex-col gap-2">
+                    <div className="absolute top-3 start-3 flex flex-col gap-2">
                       {event.gender_restriction === 'female_only' && (
                         <div className="bg-pink-100/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-pink-800 shadow-sm border border-pink-200">
                           👩 {fa.events.womenOnly}
@@ -308,7 +308,7 @@ export function Events() {
                     
                     <div 
                       ref={el => { eventBadgeRefs.current[event.id] = el; }}
-                      className={`absolute bottom-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-gray-900 shadow-md flex items-center gap-1 transition-all duration-300 ${animatingEventId === event.id ? 'scale-125 ring-4 ring-primary/40 bg-primary text-white' : unanimatingEventId === event.id ? 'scale-90 opacity-80 bg-red-50 text-red-600 border border-red-200' : ''}`}
+                      className={`absolute bottom-3 end-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-gray-900 shadow-md flex items-center gap-1 transition-all duration-300 ${animatingEventId === event.id ? 'scale-125 ring-4 ring-primary/40 bg-primary text-white' : unanimatingEventId === event.id ? 'scale-90 opacity-80 bg-red-50 text-red-600 border border-red-200' : ''}`}
                     >
                       <span className="text-sm">⭐</span> {currentVotes} {fa.events.votes}
                     </div>
@@ -406,12 +406,12 @@ export function Events() {
               return (
                 <div key={event.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden">
                   
-                  <div className="absolute top-4 right-4 flex flex-col gap-2 z-10 items-end">
+                  <div className="absolute top-4 end-4 flex flex-col gap-2 z-10 items-end">
                     {/* Verified badge */}
                     {(event.host?.is_verified || true) && (
                       <div 
-                        className="bg-primary text-white p-1 rounded-bl-lg shadow-sm flex items-center justify-center w-8 h-8 cursor-help"
-                        title="Verified host"
+                        className="bg-primary text-white p-1 rounded-es-lg shadow-sm flex items-center justify-center w-8 h-8 cursor-help"
+                        title={fa.events.verifiedHost}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                           <polyline points="20 6 9 17 4 12"></polyline>
@@ -421,12 +421,12 @@ export function Events() {
                     
                     {event.gender_restriction === 'female_only' && (
                       <div className="bg-pink-100 px-2 py-1 rounded-md text-[10px] font-bold text-pink-800 shadow-sm border border-pink-200">
-                        👩 Women Only
+                        👩 {fa.events.womenOnly}
                       </div>
                     )}
                     {event.gender_restriction === 'male_only' && (
                       <div className="bg-blue-100 px-2 py-1 rounded-md text-[10px] font-bold text-blue-800 shadow-sm border border-blue-200">
-                        👨 Men Only
+                        👨 {fa.events.menOnly}
                       </div>
                     )}
                   </div>
@@ -434,24 +434,24 @@ export function Events() {
                     <div className="mb-3 flex max-w-full overflow-hidden">
                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-bold w-full ${badgeColor.bg} ${badgeColor.text}`}>
                         <span className="flex-shrink-0">★</span> 
-                        <span className="truncate">Matches your interests: {event.category?.name}</span>
+                        <span className="truncate">{fa.events.matchesInterests}: {categoryFa(event.category?.name)}</span>
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between items-start mb-4 gap-2">
                     {!event.isMatch && !event.isPreferredTime && (
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-bold max-w-[70%] ${badgeColor.bg} ${badgeColor.text}`}>
-                        <span className="truncate">{event.category?.name || 'Uncategorized'}</span>
+                        <span className="truncate">{event.category?.name ? categoryFa(event.category.name) : fa.events.uncategorized}</span>
                       </span>
                     )}
                     {event.isPreferredTime && !event.isMatch && (
                       <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-900 px-3 py-1 rounded-sm text-sm font-bold max-w-[70%]">
                         <span className="text-blue-500 flex-shrink-0">⏱</span>
-                        <span className="truncate">Matches your schedule</span>
+                        <span className="truncate">{fa.events.matchesSchedule}</span>
                       </span>
                     )}
-                    <span className={`text-sm font-bold flex-shrink-0 ${event.isMatch || event.isPreferredTime ? 'ml-auto text-gray-500' : 'text-gray-400'}`}>
-                      {new Date(event.datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    <span className={`text-sm font-bold flex-shrink-0 ${event.isMatch || event.isPreferredTime ? 'ms-auto text-gray-500' : 'text-gray-400'}`}>
+                      {new Date(event.datetime).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                   
@@ -465,10 +465,10 @@ export function Events() {
                   
                   <div className="flex items-center gap-2 mb-6 text-sm text-gray-500 font-medium mt-auto">
                     <div className="w-6 h-6 bg-gray-200 rounded-full flex-shrink-0"></div>
-                    <span className="truncate">By {event.host?.display_name || 'Anonymous'}</span>
+                    <span className="truncate">{fa.events.byHost} {event.host?.display_name || fa.events.anonymous}</span>
                     <span className="mx-1">•</span>
                     <span className="flex-shrink-0">
-                      {rsvpCount} / {event.max_attendees || '∞'} going
+                      {rsvpCount} / {event.max_attendees || '∞'} {fa.events.goingCount}
                     </span>
                   </div>
                   

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAvatarUrl } from '../lib/avatars';
 import { Check, X } from 'lucide-react';
+import { fa } from '../locale/fa';
 
 type ConnectionRequest = {
   id: string;
@@ -97,12 +98,12 @@ export function Connections() {
   if (loading) {
     return <div className="text-center py-20 text-gray-500 font-bold flex flex-col items-center gap-4">
       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-      Loading connections...
+      {fa.connections.loading}
     </div>;
   }
 
   if (!currentUserId) {
-    return <div className="text-center py-20 text-gray-500 font-bold">Please sign in to view connections.</div>;
+    return <div className="text-center py-20 text-gray-500 font-bold">{fa.connections.signInPrompt}</div>;
   }
 
   const pending = requests.filter(r => r.status === 'pending');
@@ -110,11 +111,11 @@ export function Connections() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-3xl font-extrabold text-gray-900 mb-8">Connections</h1>
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-8">{fa.connections.title}</h1>
       
       {pending.length > 0 && (
         <div className="mb-12">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Pending Requests ({pending.length})</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{fa.connections.pendingRequests} ({pending.length})</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {pending.map(req => (
               <div key={req.id} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col gap-4">
@@ -123,14 +124,14 @@ export function Connections() {
                     <img src={getAvatarUrl(req.other_user.avatar_url, req.other_user.id)} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 truncate">{req.other_user.display_name || 'Anonymous'}</h3>
-                    <p className="text-sm text-gray-500 truncate">{req.other_user.city || 'No location'}</p>
+                    <h3 className="font-bold text-gray-900 truncate">{req.other_user.display_name || fa.connections.anonymous}</h3>
+                    <p className="text-sm text-gray-500 truncate">{req.other_user.city || fa.connections.noLocation}</p>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => handleDecline(req.id)} className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors" title="Decline">
+                    <button onClick={() => handleDecline(req.id)} className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors" title={fa.connections.decline}>
                       <X className="w-5 h-5" />
                     </button>
-                    <button onClick={() => handleAccept(req.id)} className="w-10 h-10 rounded-full bg-primary-light text-primary flex items-center justify-center hover:bg-primary/20 transition-colors" title="Accept">
+                    <button onClick={() => handleAccept(req.id)} className="w-10 h-10 rounded-full bg-primary-light text-primary flex items-center justify-center hover:bg-primary/20 transition-colors" title={fa.connections.accept}>
                       <Check className="w-5 h-5" />
                     </button>
                   </div>
@@ -139,9 +140,9 @@ export function Connections() {
                   <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 flex items-center gap-2">
                     <span className="text-xl">🎟️</span>
                     <div>
-                      <p className="text-xs font-bold text-primary uppercase">Event Invitation</p>
+                      <p className="text-xs font-bold text-primary uppercase">{fa.connections.eventInvitation}</p>
                       <p className="text-sm font-medium text-gray-900">{req.event.title}</p>
-                      <p className="text-xs text-gray-500">{new Date(req.event.datetime).toLocaleDateString()} at {new Date(req.event.datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                      <p className="text-xs text-gray-500">{new Date(req.event.datetime).toLocaleDateString('fa-IR')} {fa.connections.at} {new Date(req.event.datetime).toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'})}</p>
                     </div>
                   </div>
                 )}
@@ -152,12 +153,12 @@ export function Connections() {
       )}
 
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Your Connections ({accepted.length})</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">{fa.connections.yourConnections} ({accepted.length})</h2>
         {accepted.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-3xl border border-gray-100 shadow-sm">
             <div className="text-4xl mb-4">👋</div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No connections yet</h3>
-            <p className="text-gray-500 mb-6">Start discovering people in your area to connect with!</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{fa.connections.noConnectionsTitle}</h3>
+            <p className="text-gray-500 mb-6">{fa.connections.noConnectionsSubtitle}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -168,20 +169,20 @@ export function Connections() {
                     <img src={getAvatarUrl(req.other_user.avatar_url, req.other_user.id)} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-gray-900 truncate">{req.other_user.display_name || 'Anonymous'}</h3>
-                    <p className="text-sm text-gray-500 truncate">{req.other_user.city || 'No location'}</p>
+                    <h3 className="font-bold text-gray-900 truncate">{req.other_user.display_name || fa.connections.anonymous}</h3>
+                    <p className="text-sm text-gray-500 truncate">{req.other_user.city || fa.connections.noLocation}</p>
                   </div>
                   <div className="bg-primary-light text-primary px-3 py-1 rounded-full text-xs font-bold border border-primary/20">
-                    Connected
+                    {fa.connections.connected}
                   </div>
                 </div>
                 {req.event && (
                   <div className="bg-primary/5 p-3 rounded-xl border border-primary/10 flex items-center gap-2">
                     <span className="text-xl">🎟️</span>
                     <div>
-                      <p className="text-xs font-bold text-primary uppercase">Going Together</p>
+                      <p className="text-xs font-bold text-primary uppercase">{fa.connections.goingTogether}</p>
                       <p className="text-sm font-medium text-gray-900">{req.event.title}</p>
-                      <p className="text-xs text-gray-500">{new Date(req.event.datetime).toLocaleDateString()} at {new Date(req.event.datetime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                      <p className="text-xs text-gray-500">{new Date(req.event.datetime).toLocaleDateString('fa-IR')} {fa.connections.at} {new Date(req.event.datetime).toLocaleTimeString('fa-IR', {hour: '2-digit', minute:'2-digit'})}</p>
                     </div>
                   </div>
                 )}

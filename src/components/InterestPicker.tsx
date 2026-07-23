@@ -123,17 +123,17 @@ export function InterestPicker({
   const levelNum = treeLevel === 'root' ? 1 : treeLevel === 'branch' ? 2 : 3;
 
   return (
-    <div className="skill-tree-panel text-right">
+    <div className="skill-tree-panel text-start">
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs font-bold text-gray-500">
+          <span className="text-xs font-bold text-gray-300">
             {selectedInterests.length} / {maxSelections}
           </span>
-          <span className="text-xs font-extrabold text-primary flex items-center gap-1">
+          <span className="text-xs font-extrabold text-violet-300 flex items-center gap-1">
             {fa.interestPicker.unlocked} <Sparkles className="w-3.5 h-3.5" />
           </span>
         </div>
-        <div className="h-2.5 bg-gray-200 rounded-full overflow-hidden border border-gray-300/50">
+        <div className="h-2.5 bg-gray-700 rounded-full overflow-hidden border border-gray-600/50">
           <div
             className="h-full bg-gradient-to-l from-accent-orange via-primary to-accent-purple transition-all duration-500 rounded-full ms-auto"
             style={{ width: `${xpPercent}%` }}
@@ -148,7 +148,7 @@ export function InterestPicker({
           placeholder={fa.interestPicker.search}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pe-9 ps-4 py-2.5 bg-white/80 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+          className="w-full pe-9 ps-4 py-2.5 bg-white border border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-sm text-gray-900"
           dir="rtl"
         />
       </div>
@@ -156,7 +156,7 @@ export function InterestPicker({
       {searchQuery ? (
         <div className="space-y-2 max-h-[420px] overflow-y-auto ps-1">
           {searchResults.length === 0 ? (
-            <p className="text-gray-500 text-center py-8 text-sm">{fa.interestPicker.noResults} &quot;{searchQuery}&quot;</p>
+            <p className="text-gray-400 text-center py-8 text-sm">{fa.interestPicker.noResults} &quot;{searchQuery}&quot;</p>
           ) : (
             searchResults.map((cat) => {
               const parent = getParentForGroup(cat.group_name);
@@ -174,13 +174,13 @@ export function InterestPicker({
       ) : (
         <>
           <div className="flex items-center gap-2 mb-5 flex-row-reverse">
-            <span className="text-[10px] font-extrabold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+            <span className="text-[10px] font-extrabold text-gray-200 bg-gray-700 px-2 py-1 rounded-full">
               {fa.interestPicker.level} {levelNum}
             </span>
-            <div className="flex-1 flex items-center gap-1.5 text-xs font-bold text-gray-500 overflow-hidden justify-end">
+            <div className="flex-1 flex items-center gap-1.5 text-xs font-bold text-gray-300 overflow-hidden justify-end">
               {activeBranch && (
                 <>
-                  <span className="text-primary truncate">{groupFa(activeBranch)}</span>
+                  <span className="text-violet-300 truncate">{groupFa(activeBranch)}</span>
                   <span>/</span>
                 </>
               )}
@@ -189,14 +189,14 @@ export function InterestPicker({
                   <button
                     type="button"
                     onClick={() => goBranch(activeParent.id)}
-                    className={treeLevel === 'branch' ? 'text-primary truncate' : 'hover:text-gray-700 truncate'}
+                    className={treeLevel === 'branch' ? 'text-violet-300 truncate' : 'hover:text-white truncate'}
                   >
                     {activeParent.name}
                   </button>
                   <span>/</span>
                 </>
               )}
-              <button type="button" onClick={goRoot} className={treeLevel === 'root' ? 'text-primary' : 'hover:text-gray-700'}>
+              <button type="button" onClick={goRoot} className={treeLevel === 'root' ? 'text-violet-300' : 'hover:text-white'}>
                 {fa.interestPicker.world}
               </button>
             </div>
@@ -204,7 +204,7 @@ export function InterestPicker({
               <button
                 type="button"
                 onClick={goBack}
-                className="flex items-center gap-1 text-sm font-bold text-primary hover:text-primary-dark transition-colors"
+                className="flex items-center gap-1 text-sm font-bold text-violet-300 hover:text-white transition-colors"
               >
                 {fa.interestPicker.back} <ChevronRight className="w-4 h-4" />
               </button>
@@ -291,9 +291,9 @@ export function InterestPicker({
       )}
 
       {getSelectionTier && (
-        <div className="mt-5 flex gap-4 text-[10px] font-bold text-gray-400 justify-center">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-primary" /> {fa.interestPicker.highPriority}</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-800" /> {fa.interestPicker.normal}</span>
+        <div className="mt-5 flex gap-4 text-[10px] font-bold text-gray-300 justify-center">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-violet-500" /> {fa.interestPicker.highPriority}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-gray-400" /> {fa.interestPicker.normal}</span>
         </div>
       )}
     </div>

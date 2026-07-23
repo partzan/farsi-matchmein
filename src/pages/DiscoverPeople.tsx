@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { getAvatarUrl } from '../lib/avatars';
 import { Calendar, MapPin } from 'lucide-react';
+import { fa } from '../locale/fa';
+import { categoryFa } from '../locale/categoriesFa';
 
 export function DiscoverPeople() {
   const [loading, setLoading] = useState(true);
@@ -105,27 +107,27 @@ export function DiscoverPeople() {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-gray-500">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-bold">Finding amazing people for you...</p>
+        <p className="font-bold">{fa.discoverPeople.loading}</p>
       </div>
     );
   }
 
   if (!currentUser) {
-    return <div className="text-center py-20 font-bold text-gray-500">Please log in to discover people.</div>;
+    return <div className="text-center py-20 font-bold text-gray-500">{fa.discoverPeople.loginPrompt}</div>;
   }
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       <div className="text-center">
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-4">Discover People</h1>
-        <p className="text-lg text-gray-600">We've found people who share your interests in your area. Invite them to an event!</p>
+        <h1 className="text-4xl font-extrabold text-gray-900 mb-4">{fa.discoverPeople.title}</h1>
+        <p className="text-lg text-gray-600">{fa.discoverPeople.subtitle}</p>
       </div>
 
       {matches.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
           <div className="text-6xl mb-6">🔍</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">No matches right now</h2>
-          <p className="text-gray-500 max-w-md mx-auto">We couldn't find anyone matching your exact preferences in your city right now. Check back later or broaden your preferences!</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{fa.discoverPeople.noMatchesTitle}</h2>
+          <p className="text-gray-500 max-w-md mx-auto">{fa.discoverPeople.noMatchesSubtitle}</p>
         </div>
       ) : (
         <div className="space-y-16">
@@ -143,17 +145,17 @@ export function DiscoverPeople() {
                   <div className="w-32 h-32 rounded-full overflow-hidden bg-white mb-6 border-4 border-white shadow-md">
                     <img src={getAvatarUrl(person.avatar_url, person.id)} alt="Avatar" className="w-full h-full object-cover" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{person.display_name || 'Anonymous'}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{person.display_name || fa.discoverPeople.anonymous}</h2>
                   <div className="flex items-center gap-2 text-gray-500 mb-4">
                     <MapPin className="w-4 h-4" />
-                    <span className="font-medium">{person.city || 'No location'}</span>
+                    <span className="font-medium">{person.city || fa.discoverPeople.noLocation}</span>
                   </div>
                   {person.bio && (
                     <p className="text-gray-600 italic">"{person.bio}"</p>
                   )}
                   <div className="mt-6 flex flex-wrap justify-center gap-2">
                     <div className="px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-bold">
-                      {person.sharedInterests.length} Shared Interests
+                      {person.sharedInterests.length} {fa.discoverPeople.sharedInterests}
                     </div>
                   </div>
                 </div>
@@ -161,17 +163,17 @@ export function DiscoverPeople() {
                 {/* Events Section */}
                 <div className="md:w-2/3 p-8">
                   <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <span>🎟️</span> Suggested Events to go together
+                    <span>🎟️</span> {fa.discoverPeople.suggestedEvents}
                   </h3>
                   
                   {displayEvents.length === 0 ? (
-                    <p className="text-gray-500 italic">No upcoming events found to suggest.</p>
+                    <p className="text-gray-500 italic">{fa.discoverPeople.noEventsToSuggest}</p>
                   ) : (
                     <div className="space-y-4">
                       {displayEvents.map(event => {
                         const date = new Date(event.datetime);
-                        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-                        const shortDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                        const dayOfWeek = date.toLocaleDateString('fa-IR', { weekday: 'long' });
+                        const shortDate = date.toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' });
                         const isInviting = inviting[`${person.id}-${event.id}`];
 
                         return (
@@ -179,14 +181,14 @@ export function DiscoverPeople() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-bold uppercase tracking-wider">
-                                  {event.interest_categories?.emoji} {event.interest_categories?.name}
+                                  {event.interest_categories?.emoji} {categoryFa(event.interest_categories?.name)}
                                 </span>
                               </div>
                               <h4 className="font-bold text-gray-900 text-lg">{event.title}</h4>
-                              <p className="text-sm text-gray-500 line-clamp-1 mb-2">{event.description || 'No description provided.'}</p>
+                              <p className="text-sm text-gray-500 line-clamp-1 mb-2">{event.description || fa.discoverPeople.noDescription}</p>
                               <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
                                 <Calendar className="w-3.5 h-3.5" />
-                                <span>{dayOfWeek}, {shortDate}</span>
+                                <span>{dayOfWeek}، {shortDate}</span>
                               </div>
                             </div>
                             <button 
@@ -198,7 +200,7 @@ export function DiscoverPeople() {
                                   : 'bg-gray-900 text-white hover:bg-primary hover:text-white hover:scale-105'
                               }`}
                             >
-                              {isInviting ? 'Invite Sent!' : 'Invite to Event'}
+                              {isInviting ? fa.discoverPeople.inviteSent : fa.discoverPeople.inviteToEvent}
                             </button>
                           </div>
                         );

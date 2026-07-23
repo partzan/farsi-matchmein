@@ -95,7 +95,7 @@ export function PlatformInfoTiles() {
                   </div>
                 }
                 backChild={
-                  <div className="h-full w-full rounded-3xl bg-white p-5 flex flex-col border border-gray-100 shadow-xl text-right">
+                  <div className="h-full w-full rounded-3xl bg-white p-5 flex flex-col border border-gray-100 shadow-xl text-start">
                     <span className="text-primary text-xs font-extrabold">{item.step} · {item.title}</span>
                     <h3 className="text-lg font-extrabold text-gray-900 mt-2 mb-3 leading-snug">{item.tagline}</h3>
                     <p className="text-gray-600 text-sm leading-relaxed flex-1">{item.description}</p>

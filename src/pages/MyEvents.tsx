@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCategoryColor } from '../lib/colors';
+import { fa } from '../locale/fa';
+import { categoryFa } from '../locale/categoriesFa';
 
 type Event = {
   id: string;
@@ -59,7 +61,7 @@ export function MyEvents() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-12 text-center">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-8">My Events</h1>
+        <h1 className="text-3xl font-extrabold text-gray-900 mb-8">{fa.myEvents.title}</h1>
         
         <div className="flex justify-center border-b border-gray-200">
           <button
@@ -70,7 +72,7 @@ export function MyEvents() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Attending
+            {fa.myEvents.attending}
           </button>
           <button
             onClick={() => setActiveTab('attended')}
@@ -80,7 +82,7 @@ export function MyEvents() {
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Attended
+            {fa.myEvents.attended}
           </button>
         </div>
       </div>
@@ -100,11 +102,11 @@ export function MyEvents() {
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
             <p className="text-gray-500 font-medium text-lg">
               {activeTab === 'attending' 
-                ? "You aren't attending any upcoming events." 
-                : "You haven't attended any events yet."}
+                ? fa.myEvents.notAttendingUpcoming 
+                : fa.myEvents.notAttendedAny}
             </p>
             {activeTab === 'attending' && (
-              <Link to="/events" className="text-primary font-bold hover:underline mt-4 inline-block">Find Events to join!</Link>
+              <Link to="/events" className="text-primary font-bold hover:underline mt-4 inline-block">{fa.myEvents.findEvents}</Link>
             )}
           </div>
         ) : (
@@ -117,10 +119,10 @@ export function MyEvents() {
                 <div key={event.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden">
                   <div className="flex justify-between items-start mb-4 gap-2">
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-bold max-w-[70%] ${badgeColor.bg} ${badgeColor.text}`}>
-                      <span className="truncate">{event.category?.name || 'Uncategorized'}</span>
+                      <span className="truncate">{event.category?.name ? categoryFa(event.category.name) : fa.events.uncategorized}</span>
                     </span>
                     <span className="text-sm font-bold flex-shrink-0 text-gray-400">
-                      {new Date(event.datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      {new Date(event.datetime).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                   
@@ -134,10 +136,10 @@ export function MyEvents() {
                   
                   <div className="flex items-center gap-2 mb-6 text-sm text-gray-500 font-medium mt-auto">
                     <div className="w-6 h-6 bg-gray-200 rounded-full flex-shrink-0"></div>
-                    <span className="truncate">By {event.host?.display_name || 'Anonymous'}</span>
+                    <span className="truncate">{fa.events.byHost} {event.host?.display_name || fa.events.anonymous}</span>
                     <span className="mx-1">•</span>
                     <span className="flex-shrink-0">
-                      {rsvpCount} / {event.max_attendees || '∞'} going
+                      {rsvpCount} / {event.max_attendees || '∞'} {fa.events.goingCount}
                     </span>
                   </div>
                   
@@ -145,7 +147,7 @@ export function MyEvents() {
                     to={`/event/${event.id}`}
                     className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-full font-bold transition-colors text-center inline-block"
                   >
-                    View Details
+                    {fa.events.viewDetails}
                   </Link>
                 </div>
               );
