@@ -386,7 +386,7 @@ export function Events() {
                           to="/login"
                           className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-primary px-3 py-2.5 text-sm font-bold text-white"
                         >
-                          {fa.events.guestSignIn}
+                          {fa.nav.loginGoogle}
                         </Link>
                       </div>
                     )}

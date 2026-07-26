@@ -104,17 +104,6 @@ export function SignupModal({ open, onClose, onSuccess }: SignupModalProps) {
           {fa.signup.google}
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            onClose();
-            navigate('/login');
-          }}
-          className="mt-3 w-full bg-primary/10 hover:bg-primary hover:text-white text-primary py-3.5 rounded-full font-bold transition-colors"
-        >
-          {fa.signup.emailLogin}
-        </button>
-
         <p className="text-xs text-gray-400 text-center mt-5">{fa.signup.footer}</p>
       </div>
     </div>

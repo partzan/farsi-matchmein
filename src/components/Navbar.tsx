@@ -104,14 +104,14 @@ export function Navbar() {
                 </form>
               ) : (
                 <div className="flex items-center gap-1.5 ps-1">
-                  <Link
-                    to="/login"
-                    className="bg-gradient-to-l from-accent-cyan to-primary-mid text-white px-4 py-1.5 rounded-xl font-bold text-sm shadow-md shadow-accent-cyan/20 hover:opacity-95 transition-opacity"
-                  >
-                    {fa.nav.login}
-                  </Link>
                   <button onClick={() => setShowGuestLogin(true)} className={linkClass}>
                     {fa.nav.guestLogin}
+                  </button>
+                  <button
+                    onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+                    className="bg-gradient-to-l from-accent-cyan to-primary-mid text-white px-4 py-1.5 rounded-xl font-bold text-sm shadow-md shadow-accent-cyan/20 hover:opacity-95 transition-opacity"
+                  >
+                    {fa.nav.googleLogin}
                   </button>
                 </div>
               )}
@@ -170,15 +170,17 @@ export function Navbar() {
               </form>
             ) : (
               <div className="space-y-2 pt-2">
-                <Link
-                  to="/login"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full px-4 py-3 text-center text-base font-bold text-white bg-gradient-to-l from-accent-cyan to-primary-mid rounded-xl shadow-md shadow-accent-cyan/20"
-                >
-                  {fa.nav.login}
-                </Link>
                 <button onClick={() => setShowGuestLogin(true)} className="w-full px-4 py-3 text-base font-bold text-white/80 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors">
                   {fa.nav.continueGuest}
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    supabase.auth.signInWithOAuth({ provider: 'google' });
+                  }}
+                  className="w-full px-4 py-3 text-base font-bold text-white bg-gradient-to-l from-accent-cyan to-primary-mid rounded-xl shadow-md shadow-accent-cyan/20"
+                >
+                  {fa.nav.loginGoogle}
                 </button>
               </div>
             )}
