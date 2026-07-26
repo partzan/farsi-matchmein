@@ -10,8 +10,6 @@ import { Onboarding } from './pages/Onboarding';
 import { EventDetail } from './pages/EventDetail';
 import { MyEvents } from './pages/MyEvents';
 import { AdminEvents } from './pages/AdminEvents';
-import { Login } from './pages/Login';
-import { Welcome } from './pages/Welcome';
 import { Discover } from './pages/Discover';
 
 function App() {
@@ -22,15 +20,13 @@ function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/events" element={<Events />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/create-event" element={<CreateEvent />} />
             <Route path="/event/:id" element={<EventDetail />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/my-events" element={<MyEvents />} />
             <Route path="/onboarding" element={<Onboarding />} />
           </Routes>

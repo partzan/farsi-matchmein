@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { PhoneOtpField } from './PhoneOtpField';
 import { ProfileInterestsStep } from './ProfileInterestsStep';
 import { VoteCounterRail } from '../VoteCounterRail';
@@ -163,7 +163,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
   const step2Complete = interestTotal >= MIN_INTERESTS_TOTAL;
   const canSave = step2Complete;
 
-  const leaveEarly = () => navigate(mode === 'setup' ? '/welcome' : '/events');
+  const leaveEarly = () => navigate('/events');
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -236,7 +236,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
         if (interestsError) throw interestsError;
       }
 
-      navigate(mode === 'setup' ? '/welcome' : '/events', { replace: true });
+      navigate('/events', { replace: true });
     } catch (err: any) {
       setError(err.message || fa.profile.errors.saveFailed);
     } finally {
@@ -250,7 +250,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
 
   const requireLoginToSave = async () => {
     if (needsAuth) {
-      navigate('/login');
+      await supabase.auth.signInWithOAuth({ provider: 'google' });
       return;
     }
     await handleSave();
@@ -261,12 +261,13 @@ export function ProfileForm({ mode }: ProfileFormProps) {
       {needsAuth && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-orange/40 bg-accent-orange/10 px-4 py-3">
           <p className="text-sm font-bold text-foreground">{fa.profileSetup.loginRequired}</p>
-          <Link
-            to="/login"
+          <button
+            type="button"
+            onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
           >
-            {fa.events.guestSignIn}
-          </Link>
+            {fa.nav.loginGoogle}
+          </button>
         </div>
       )}
 

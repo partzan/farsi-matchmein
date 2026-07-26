@@ -32,7 +32,7 @@ export function CreateEvent() {
     async function checkAccess() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        navigate('/login');
+        navigate('/');
         return;
       }
     }

@@ -250,9 +250,13 @@ export function Discover() {
           {!userId ? (
             <p className="rounded-2xl border border-border bg-white px-4 py-6 text-sm text-muted">
               {fa.discover.friendsLoginHint}{' '}
-              <Link to="/login" className="font-bold text-primary">
-                {fa.login.loginLink}
-              </Link>
+              <button
+                type="button"
+                onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+                className="font-bold text-primary"
+              >
+                {fa.nav.loginGoogle}
+              </button>
             </p>
           ) : friendEvents.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-border bg-white px-4 py-6 text-sm text-muted">

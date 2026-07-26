@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCategoryColor } from '../lib/colors';
 import { VoteCounterRail } from '../components/VoteCounterRail';
+import { SignupModal } from '../components/SignupModal';
 import type { User } from '@supabase/supabase-js';
 import { fa } from '../locale/fa';
 import { categoryFa } from '../locale/categoriesFa';
-
-const PENDING_VOTE_KEY = 'pending_event_vote';
 
 type Event = {
   id: string;
@@ -34,7 +33,7 @@ export function Events() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [userRank, setUserRank] = useState('user');
-  const [guestGateEventId, setGuestGateEventId] = useState<string | null>(null);
+  const [showSignup, setShowSignup] = useState(false);
   const [animatingEventId, setAnimatingEventId] = useState<string | null>(null);
   const [unanimatingEventId, setUnanimatingEventId] = useState<string | null>(null);
   const [userVotes, setUserVotes] = useState<Set<string>>(new Set());
@@ -160,54 +159,9 @@ export function Events() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // After login, auto-submit a vote the guest intended (once)
-  useEffect(() => {
-    if (!user || loading) return;
-    let pending: string | null = null;
-    try {
-      pending = sessionStorage.getItem(PENDING_VOTE_KEY);
-    } catch {
-      return;
-    }
-    if (!pending) return;
-
-    const eventId = pending;
-    try {
-      sessionStorage.removeItem(PENDING_VOTE_KEY);
-    } catch {
-      /* ignore */
-    }
-
-    if (userVotes.has(eventId) || voteTokens <= 0) return;
-
-    (async () => {
-      const { error } = await supabase.rpc('vote_for_event', { target_event_id: eventId });
-      if (!error) {
-        setVoteTokens((prev) => prev - 1);
-        setUserVotes((prev) => new Set(prev).add(eventId));
-        setVotingEvents((prev) =>
-          prev.map((e) => {
-            if (e.id !== eventId) return e;
-            const currentVotes =
-              Array.isArray(e.event_votes) && e.event_votes[0] ? e.event_votes[0].count : 0;
-            return { ...e, event_votes: [{ count: currentVotes + 1 }] };
-          })
-        );
-        setGuestGateEventId(null);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once after initial load for logged-in user
-  }, [user, loading]);
-
   const handleVote = async (eventId: string) => {
-    const isGuest = !user || userRank === 'guest';
-    if (isGuest) {
-      setGuestGateEventId(eventId);
-      try {
-        sessionStorage.setItem(PENDING_VOTE_KEY, eventId);
-      } catch {
-        /* ignore */
-      }
+    if (!user) {
+      setShowSignup(true);
       return;
     }
 
@@ -216,8 +170,6 @@ export function Events() {
       return;
     }
 
-    setGuestGateEventId(null);
-    
     const { error } = await supabase.rpc('vote_for_event', { target_event_id: eventId });
     if (error) {
       if (error.message.includes('unique constraint')) {
@@ -226,11 +178,6 @@ export function Events() {
         alert(fa.events.voteError + ' ' + error.message);
       }
     } else {
-      try {
-        sessionStorage.removeItem(PENDING_VOTE_KEY);
-      } catch {
-        /* ignore */
-      }
       let startX = 0, startY = 0, endX = 0, endY = 0;
       if (stackRef.current && eventBadgeRefs.current[eventId]) {
         const sourceRect = stackRef.current.getBoundingClientRect();
@@ -303,6 +250,7 @@ export function Events() {
 
   return (
     <div className="relative min-h-[60vh]" dir="rtl">
+      <SignupModal open={showSignup} onClose={() => setShowSignup(false)} />
       <VoteCounterRail remaining={user ? voteTokens : null} />
       {/* Keep stackRef for flying-ticket animation origin */}
       <div ref={stackRef} className="pointer-events-none fixed left-4 top-1/2 -z-10 h-1 w-1 opacity-0" aria-hidden />
@@ -361,7 +309,7 @@ export function Events() {
                     <h3 className="font-extrabold text-lg text-gray-900 mb-2 leading-tight">{event.title}</h3>
                     <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.pitch}</p>
                     
-                    {user && userRank !== 'guest' && userVotes.has(event.id) ? (
+                    {user && userVotes.has(event.id) ? (
                       <button 
                         onClick={() => handleUnvote(event.id)}
                         className="mt-auto w-full bg-transparent border-2 border-gray-200 text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 py-2.5 rounded-full font-bold transition-colors text-sm"
@@ -375,20 +323,6 @@ export function Events() {
                       >
                         {fa.events.vote}
                       </button>
-                    )}
-
-                    {guestGateEventId === event.id && (!user || userRank === 'guest') && (
-                      <div className="mt-3 rounded-xl border border-accent-orange/40 bg-accent-orange/10 p-3 text-center">
-                        <p className="text-sm font-bold text-foreground leading-relaxed">
-                          {fa.events.guestVoteBlocked}
-                        </p>
-                        <Link
-                          to="/login"
-                          className="mt-2 inline-flex w-full items-center justify-center rounded-xl bg-primary px-3 py-2.5 text-sm font-bold text-white"
-                        >
-                          {fa.nav.loginGoogle}
-                        </Link>
-                      </div>
                     )}
                   </div>
                 </div>
