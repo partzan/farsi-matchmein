@@ -32,13 +32,8 @@ export function CreateEvent() {
     async function checkAccess() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        navigate('/');
+        navigate('/login');
         return;
-      }
-      
-      const { data } = await supabase.from('users').select('rank').eq('id', session.user.id).single();
-      if (!data || data.rank !== 'administrator') {
-        navigate('/');
       }
     }
     

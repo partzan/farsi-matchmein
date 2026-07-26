@@ -72,6 +72,7 @@ export function Navbar() {
 
             <div className="hidden sm:flex items-center gap-1.5 rounded-2xl bg-white/5 border border-white/10 p-1.5 backdrop-blur-sm">
               <Link to="/events" className={linkClass}>{fa.nav.events}</Link>
+              <Link to="/discover" className={linkClass}>{fa.nav.discover}</Link>
               {user ? (
                 <>
                   <Link to="/my-events" className={linkActiveish}>{fa.nav.myEvents}</Link>
@@ -103,14 +104,14 @@ export function Navbar() {
                 </form>
               ) : (
                 <div className="flex items-center gap-1.5 ps-1">
-                  <button onClick={() => setShowGuestLogin(true)} className={linkClass}>
-                    {fa.nav.guestLogin}
-                  </button>
-                  <button
-                    onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+                  <Link
+                    to="/login"
                     className="bg-gradient-to-l from-accent-cyan to-primary-mid text-white px-4 py-1.5 rounded-xl font-bold text-sm shadow-md shadow-accent-cyan/20 hover:opacity-95 transition-opacity"
                   >
-                    {fa.nav.googleLogin}
+                    {fa.nav.login}
+                  </Link>
+                  <button onClick={() => setShowGuestLogin(true)} className={linkClass}>
+                    {fa.nav.guestLogin}
                   </button>
                 </div>
               )}
@@ -134,6 +135,7 @@ export function Navbar() {
         <div className="sm:hidden border-b border-white/10 bg-primary/95 backdrop-blur-xl shadow-2xl absolute w-full end-0 z-40">
           <div className="px-4 pt-4 pb-6 space-y-1 text-start">
             <Link to="/events" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-3 text-base font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-xl">{fa.nav.events}</Link>
+            <Link to="/discover" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-3 text-base font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-xl">{fa.nav.discover}</Link>
             {user ? (
               <>
                 <Link to="/my-events" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-3 text-base font-semibold text-accent-cyan hover:text-white hover:bg-white/10 rounded-xl">{fa.nav.myEvents}</Link>
@@ -168,17 +170,15 @@ export function Navbar() {
               </form>
             ) : (
               <div className="space-y-2 pt-2">
+                <Link
+                  to="/login"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full px-4 py-3 text-center text-base font-bold text-white bg-gradient-to-l from-accent-cyan to-primary-mid rounded-xl shadow-md shadow-accent-cyan/20"
+                >
+                  {fa.nav.login}
+                </Link>
                 <button onClick={() => setShowGuestLogin(true)} className="w-full px-4 py-3 text-base font-bold text-white/80 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors">
                   {fa.nav.continueGuest}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    supabase.auth.signInWithOAuth({ provider: 'google' });
-                  }}
-                  className="w-full px-4 py-3 text-base font-bold text-white bg-gradient-to-l from-accent-cyan to-primary-mid rounded-xl shadow-md shadow-accent-cyan/20"
-                >
-                  {fa.nav.loginGoogle}
                 </button>
               </div>
             )}

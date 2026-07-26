@@ -21,8 +21,8 @@ export function Home() {
               {fa.home.badge}
             </span>
             <TypewriterHeadline />
-            <Link 
-              to="/events" 
+            <Link
+              to="/events"
               className="inline-block bg-gradient-to-l from-primary via-primary-mid to-accent-purple hover:from-primary-dark hover:via-primary hover:to-accent-purple text-white px-10 py-5 rounded-full font-bold text-xl transition-all shadow-lg shadow-accent-purple/30 hover:shadow-xl hover:shadow-accent-orange/25 hover:-translate-y-1"
             >
               {fa.home.cta}

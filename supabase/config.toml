@@ -1,0 +1,8 @@
+# Minimal Supabase config for Edge Function JWT settings.
+# otp-send / otp-verify must be callable before login.
+
+[functions.otp-send]
+verify_jwt = false
+
+[functions.otp-verify]
+verify_jwt = false
