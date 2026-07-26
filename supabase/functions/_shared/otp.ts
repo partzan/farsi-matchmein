@@ -19,7 +19,10 @@ export function normalizeIranPhone(raw: string): {
   local: string;
   digits: string;
 } | null {
-  const digits = raw.replace(/\D/g, "");
+  const ascii = raw
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - "۰".charCodeAt(0)))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - "٠".charCodeAt(0)));
+  const digits = ascii.replace(/\D/g, "");
   let national = "";
   if (digits.startsWith("98") && digits.length >= 12) national = digits.slice(2);
   else if (digits.startsWith("0") && digits.length >= 11) national = digits.slice(1);
@@ -49,22 +52,38 @@ export function adminClient() {
 
 /** Send OTP via Kavenegar Verify Lookup (template must include %token). */
 export async function sendKavenegarOtp(localPhone: string, code: string) {
-  const apiKey = Deno.env.get("KAVENEGAR_API_KEY");
+  const apiKey = Deno.env.get("KAVENEGAR_API_KEY")?.trim();
   if (!apiKey) throw new Error("KAVENEGAR_API_KEY is not set on the Edge Function");
 
-  const template = Deno.env.get("KAVENEGAR_TEMPLATE") || "verify";
-  const url =
-    `https://api.kavenegar.com/v1/${apiKey}/verify/lookup.json` +
-    `?receptor=${encodeURIComponent(localPhone)}` +
-    `&token=${encodeURIComponent(code)}` +
-    `&template=${encodeURIComponent(template)}`;
+  const template = (Deno.env.get("KAVENEGAR_TEMPLATE") || "verify").trim();
+  const params = new URLSearchParams({
+    receptor: localPhone,
+    token: code,
+    template,
+  });
+  const url = `https://api.kavenegar.com/v1/${apiKey}/verify/lookup.json`;
 
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
   const body = await res.json();
   const status = body?.return?.status;
   if (!res.ok || (status !== undefined && status !== 200)) {
-    const message = body?.return?.message || "Kavenegar send failed";
-    throw new Error(message);
+    const raw = body?.return?.message || "Kavenegar send failed";
+    // Common panel statuses → clearer Farsi hints
+    if (String(raw).includes("احراز هویت")) {
+      throw new Error(
+        "حساب کاوه‌نگار احراز هویت نشده یا کلید API نامعتبر است. در پنل کاوه‌نگار احراز هویت را کامل کن و کلید را دوباره در Secrets بگذار.",
+      );
+    }
+    if (status === 424 || String(raw).toLowerCase().includes("template")) {
+      throw new Error(
+        `قالب پیامک «${template}» در کاوه‌نگار یافت نشد یا تأیید نشده. نام قالب را با KAVENEGAR_TEMPLATE یکی کن.`,
+      );
+    }
+    throw new Error(raw);
   }
   return body;
 }

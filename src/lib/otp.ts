@@ -1,9 +1,17 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
 export type OtpPurpose = 'login' | 'signup' | 'phone_change';
 
+/** Convert Persian/Arabic-Indic digits to ASCII 0-9 */
+function toAsciiDigits(raw: string): string {
+  return raw
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - '۰'.charCodeAt(0)))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - '٠'.charCodeAt(0)));
+}
+
 export function toE164(raw: string): string | null {
-  const digits = raw.replace(/\D/g, '');
+  const digits = toAsciiDigits(raw).replace(/\D/g, '');
   if (digits.startsWith('98') && digits.length >= 12) return `+${digits}`;
   if (digits.startsWith('0') && digits.length >= 11) return `+98${digits.slice(1)}`;
   if (digits.length === 10 && digits.startsWith('9')) return `+98${digits}`;
@@ -19,13 +27,33 @@ type VerifyPhoneChangeResult =
   | { ok: true; phone: string }
   | { ok: false; message: string };
 
+async function readInvokeError(error: unknown, fallback: string): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.json();
+      if (body?.message) return String(body.message);
+      if (body?.error) return String(body.error);
+    } catch {
+      /* ignore parse errors */
+    }
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = String((error as { message: string }).message);
+    if (msg && !msg.includes('non-2xx')) return msg;
+  }
+  return fallback;
+}
+
 export async function sendPhoneOtp(phone: string, purpose: OtpPurpose): Promise<SendResult> {
   const { data, error } = await supabase.functions.invoke('otp-send', {
     body: { phone, purpose },
   });
 
   if (error) {
-    return { ok: false, message: error.message || 'ارسال کد ناموفق بود.' };
+    return {
+      ok: false,
+      message: await readInvokeError(error, 'ارسال کد ناموفق بود.'),
+    };
   }
   if (data?.error) {
     return { ok: false, message: data.message || data.error };
@@ -44,7 +72,10 @@ export async function verifyPhoneOtpLogin(
   });
 
   if (error) {
-    return { ok: false, message: error.message || 'تأیید کد ناموفق بود.' };
+    return {
+      ok: false,
+      message: await readInvokeError(error, 'تأیید کد ناموفق بود.'),
+    };
   }
   if (data?.error) {
     return { ok: false, message: data.message || data.error };
@@ -77,7 +108,10 @@ export async function verifyPhoneOtpChange(
   });
 
   if (error) {
-    return { ok: false, message: error.message || 'تأیید کد ناموفق بود.' };
+    return {
+      ok: false,
+      message: await readInvokeError(error, 'تأیید کد ناموفق بود.'),
+    };
   }
   if (data?.error) {
     return { ok: false, message: data.message || data.error };

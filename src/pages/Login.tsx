@@ -6,16 +6,46 @@ import { fa } from '../locale/fa';
 import { BrandLogo } from '../components/BrandLogo';
 
 type Mode = 'login' | 'signup';
-type Step = 'phone' | 'otp';
+type Channel = 'phone' | 'email';
+type Step = 'form' | 'otp';
 
 export function Login() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('login');
-  const [step, setStep] = useState<Step>('phone');
+  const [channel, setChannel] = useState<Channel>('email');
+  const [step, setStep] = useState<Step>('form');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const afterAuth = async (isSignupIntent: boolean) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setError(fa.login.verifyFail);
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from('users')
+      .select('display_name')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const { count } = await supabase
+      .from('user_interests')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id);
+
+    const isNew =
+      isSignupIntent ||
+      !profile?.display_name ||
+      (count ?? 0) < 3;
+
+    navigate(isNew ? '/profile-setup' : '/welcome', { replace: true });
+  };
 
   const sendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,33 +90,57 @@ export function Login() {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setError(fa.login.verifyFail);
+    await afterAuth(mode === 'signup');
+  };
+
+  const submitEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const trimmed = email.trim();
+    if (!trimmed.includes('@')) {
+      setError(fa.login.invalidEmail);
+      return;
+    }
+    if (password.length < 6) {
+      setError(fa.login.invalidPassword);
       return;
     }
 
-    const { data: profile } = await supabase
-      .from('users')
-      .select('display_name')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    const { count } = await supabase
-      .from('user_interests')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    const isNew =
-      mode === 'signup' ||
-      !profile?.display_name ||
-      (count ?? 0) < 3;
-
-    if (isNew) {
-      navigate('/profile-setup', { replace: true });
-    } else {
-      navigate('/welcome', { replace: true });
+    setLoading(true);
+    try {
+      if (mode === 'signup') {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: trimmed,
+          password,
+        });
+        if (signUpError) throw signUpError;
+        if (!data.session) {
+          // Email confirm may be required in project settings
+          setError(fa.login.emailConfirmHint);
+          return;
+        }
+        await afterAuth(true);
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: trimmed,
+          password,
+        });
+        if (signInError) throw signInError;
+        await afterAuth(false);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : fa.login.emailFail;
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const switchChannel = (next: Channel) => {
+    setChannel(next);
+    setStep('form');
+    setOtp('');
+    setError(null);
   };
 
   return (
@@ -103,20 +157,96 @@ export function Login() {
         <p className="mt-2 text-sm text-muted">
           {step === 'otp'
             ? fa.login.otpSubtitle.replace('{phone}', phone)
-            : mode === 'signup'
-              ? fa.login.signupSubtitle
-              : fa.login.subtitle}
+            : channel === 'email'
+              ? mode === 'signup'
+                ? fa.login.emailSignupSubtitle
+                : fa.login.emailSubtitle
+              : mode === 'signup'
+                ? fa.login.signupSubtitle
+                : fa.login.subtitle}
         </p>
       </div>
 
       <div className="rounded-3xl border border-border bg-white p-6 shadow-sm sm:p-8">
+        {step === 'form' && (
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl bg-background p-1">
+            <button
+              type="button"
+              onClick={() => switchChannel('email')}
+              className={`rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+                channel === 'email' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-foreground'
+              }`}
+            >
+              {fa.login.tabEmail}
+            </button>
+            <button
+              type="button"
+              onClick={() => switchChannel('phone')}
+              className={`rounded-xl px-3 py-2.5 text-sm font-bold transition ${
+                channel === 'phone' ? 'bg-primary text-white shadow-sm' : 'text-muted hover:text-foreground'
+              }`}
+            >
+              {fa.login.tabPhone}
+            </button>
+          </div>
+        )}
+
         {error && (
           <p className="mb-4 rounded-xl bg-accent-red/10 px-3 py-2 text-sm font-semibold text-accent-red">
             {error}
           </p>
         )}
 
-        {step === 'phone' ? (
+        {step === 'form' && channel === 'email' && (
+          <form onSubmit={submitEmail} className="space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-foreground">
+                {fa.login.emailLabel}
+              </label>
+              <input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                dir="ltr"
+                autoFocus
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold text-foreground">
+                {fa.login.passwordLabel}
+              </label>
+              <input
+                type="password"
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                dir="ltr"
+                required
+                minLength={6}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-2xl bg-gradient-to-l from-primary via-primary-mid to-accent-purple px-4 py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95 disabled:opacity-60"
+            >
+              {loading
+                ? fa.login.emailWorking
+                : mode === 'signup'
+                  ? fa.login.createAccount
+                  : fa.login.loginBtn}
+            </button>
+            <p className="text-center text-xs text-muted">{fa.login.emailTempNote}</p>
+          </form>
+        )}
+
+        {step === 'form' && channel === 'phone' && (
           <form onSubmit={sendOtp} className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-bold text-foreground">
@@ -146,7 +276,9 @@ export function Login() {
                   : fa.login.loginBtn}
             </button>
           </form>
-        ) : (
+        )}
+
+        {step === 'otp' && (
           <form onSubmit={verifyOtp} className="space-y-4">
             <div>
               <label className="mb-2 block text-sm font-bold text-foreground">
@@ -175,7 +307,7 @@ export function Login() {
             <button
               type="button"
               onClick={() => {
-                setStep('phone');
+                setStep('form');
                 setOtp('');
                 setError(null);
               }}
@@ -186,7 +318,7 @@ export function Login() {
           </form>
         )}
 
-        {step === 'phone' && (
+        {step === 'form' && (
           <div className="mt-6 border-t border-border pt-5 text-center text-sm">
             {mode === 'login' ? (
               <p className="text-muted">
