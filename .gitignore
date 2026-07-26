@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env.local
+
+# Supabase CLI local cache (project refs, pooler URLs)
+supabase/.temp/
