@@ -32,39 +32,4 @@ export function StaticPage({ title, lead, children }: Props) {
   );
 }
 
-export function TrustBadges() {
-  const items = [
-    {
-      title: fa.footer.enamad,
-      hint: fa.footer.enamadHint,
-    },
-    {
-      title: fa.footer.paymentCert,
-      hint: fa.footer.paymentCertHint,
-    },
-    {
-      title: fa.footer.businessLicense,
-      hint: fa.footer.businessLicenseHint,
-    },
-  ];
-
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      {items.map((item) => (
-        <div
-          key={item.title}
-          className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-background/60 px-4 py-5 text-center"
-        >
-          <span className="mb-2 rounded-full bg-primary-light px-2.5 py-0.5 text-[10px] font-black text-primary">
-            {fa.footer.placeholderBadge}
-          </span>
-          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-white text-xs font-black text-muted">
-            {item.title.slice(0, 2)}
-          </div>
-          <p className="text-sm font-extrabold text-foreground">{item.title}</p>
-          <p className="mt-1 text-xs text-muted">{item.hint}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+export { CertificateStack, TrustBadges } from './CertificateStack';
