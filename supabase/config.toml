@@ -4,8 +4,10 @@
 
 [auth]
 enabled = true
-site_url = "https://match-me-govm0v7kp-match-me-in.vercel.app/"
+site_url = "https://r359.ir/"
 additional_redirect_urls = [
+  "https://r359.ir/",
+  "https://www.r359.ir/",
   "https://match-me-govm0v7kp-match-me-in.vercel.app/",
   "http://localhost:5173/",
   "http://127.0.0.1:5173/",

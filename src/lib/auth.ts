@@ -1,9 +1,10 @@
 import { supabase } from './supabase';
 import { fa } from '../locale/fa';
 
-/** Google OAuth — always return to this site (not a broken default redirect). */
+/** Google OAuth — always return to this site origin (must be in Supabase redirect allow-list). */
 export function signInWithGoogle(redirectPath = '/') {
-  const redirectTo = `${window.location.origin}${redirectPath}`;
+  const path = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+  const redirectTo = `${window.location.origin}${path}`;
   return supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo },
