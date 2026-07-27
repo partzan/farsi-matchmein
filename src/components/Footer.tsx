@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { fa } from '../locale/fa';
 import { BrandLogo } from './BrandLogo';
+import { TrustBadges } from './StaticPage';
 
 const linkClass =
   'text-sm font-medium text-foreground/65 transition-colors hover:text-primary';
@@ -16,6 +17,18 @@ export function Footer() {
               <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
                 {fa.footer.tagline}
               </p>
+              <div className="mt-5 space-y-1.5 text-sm text-muted">
+                <p>
+                  <span className="font-bold text-foreground">{fa.footer.phoneLabel}:</span>{' '}
+                  <span className="tabular-nums tracking-wide" dir="ltr">
+                    {fa.footer.phoneValue}
+                  </span>
+                </p>
+                <p>
+                  <span className="font-bold text-foreground">{fa.footer.emailLabel}:</span>{' '}
+                  <span dir="ltr">{fa.footer.emailValue}</span>
+                </p>
+              </div>
             </div>
 
             <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 lg:max-w-2xl lg:gap-12">
@@ -30,7 +43,7 @@ export function Footer() {
                     </Link>
                   </li>
                   <li>
-                    <Link to="/" className={linkClass}>
+                    <Link to="/#how" className={linkClass}>
                       {fa.footer.howItWorks}
                     </Link>
                   </li>
@@ -43,12 +56,12 @@ export function Footer() {
                 </h4>
                 <ul className="space-y-3">
                   <li>
-                    <Link to="/" className={linkClass}>
+                    <Link to="/about" className={linkClass}>
                       {fa.footer.about}
                     </Link>
                   </li>
                   <li>
-                    <Link to="/" className={linkClass}>
+                    <Link to="/contact" className={linkClass}>
                       {fa.footer.contact}
                     </Link>
                   </li>
@@ -61,18 +74,25 @@ export function Footer() {
                 </h4>
                 <ul className="space-y-3">
                   <li>
-                    <Link to="/" className={linkClass}>
+                    <Link to="/privacy" className={linkClass}>
                       {fa.footer.privacy}
                     </Link>
                   </li>
                   <li>
-                    <Link to="/" className={linkClass}>
+                    <Link to="/terms" className={linkClass}>
                       {fa.footer.terms}
                     </Link>
                   </li>
                 </ul>
               </div>
             </div>
+          </div>
+
+          <div className="mb-8">
+            <h4 className="mb-4 text-sm font-extrabold text-foreground">
+              {fa.footer.trustTitle}
+            </h4>
+            <TrustBadges />
           </div>
 
           <div className="flex flex-col items-center justify-between gap-3 border-t border-border/70 pt-6 sm:flex-row">

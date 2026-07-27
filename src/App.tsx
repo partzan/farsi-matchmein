@@ -12,6 +12,10 @@ import { MyEvents } from './pages/MyEvents';
 import { AdminEvents } from './pages/AdminEvents';
 import { Discover } from './pages/Discover';
 import { Login } from './pages/Login';
+import { About } from './pages/About';
+import { Contact } from './pages/Contact';
+import { Terms } from './pages/Terms';
+import { Privacy } from './pages/Privacy';
 
 function App() {
   return (
@@ -31,6 +35,10 @@ function App() {
             <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/my-events" element={<MyEvents />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
           </Routes>
         </main>
         <Footer />
