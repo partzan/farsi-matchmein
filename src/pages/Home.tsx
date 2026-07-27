@@ -20,7 +20,7 @@ const FLOATERS = [
 export function Home() {
   return (
     <div className="w-full">
-      <section className="relative overflow-hidden bg-background py-12 sm:py-14 lg:py-16">
+      <section className="relative overflow-hidden bg-background py-12 pb-8 sm:py-14 lg:py-16">
         <HeroBackground />
 
         {/* Floating interest stickers */}
@@ -35,12 +35,12 @@ export function Home() {
           ))}
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
-            <span className="inline-flex items-center gap-2 text-sm font-bold text-primary bg-primary-light px-4 py-2 rounded-full mb-8 border border-accent-purple/20">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-4xl text-center">
+            <span className="mb-8 inline-flex items-center gap-2 rounded-full border border-accent-purple/20 bg-primary-light px-4 py-2 text-sm font-bold text-primary">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-orange opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-orange opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-cyan" />
               </span>
               {fa.home.badge}
             </span>
@@ -48,7 +48,7 @@ export function Home() {
             <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 to="/profile-setup"
-                className="inline-block bg-gradient-to-l from-primary via-primary-mid to-accent-purple hover:from-primary-dark hover:via-primary hover:to-accent-purple text-white px-10 py-5 rounded-full font-bold text-xl transition-all shadow-lg shadow-accent-purple/30 hover:shadow-xl hover:shadow-accent-orange/25 hover:-translate-y-1"
+                className="inline-block rounded-full bg-gradient-to-l from-primary via-primary-mid to-accent-purple px-10 py-5 text-xl font-bold text-white shadow-lg shadow-accent-purple/30 transition-all hover:-translate-y-1 hover:from-primary-dark hover:via-primary hover:to-accent-purple hover:shadow-xl hover:shadow-accent-orange/25"
               >
                 {fa.home.ctaSecondary} 🎯
               </Link>
@@ -59,11 +59,14 @@ export function Home() {
                 {fa.home.cta}
               </Link>
             </div>
-
-            <HeroEventFan />
           </div>
         </div>
       </section>
+
+      {/* Outside overflow-hidden so mobile sticky fullscreen panels work */}
+      <div className="bg-background md:mx-auto md:max-w-4xl md:px-4 md:pb-16 md:text-center lg:px-8">
+        <HeroEventFan />
+      </div>
 
       <InterestMarquee />
       <HowItWorksPath />
