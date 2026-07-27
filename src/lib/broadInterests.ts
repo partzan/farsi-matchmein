@@ -1,85 +1,322 @@
-import { PARENT_CATEGORIES } from './interestTree';
+import type { Category } from './interestTree';
 
-/** Inclusive “main” interests — up to 3 picks across 5 wide parents (~15 options). */
+export type InterestGroup = {
+  id: string;
+  label: string;
+  emoji: string;
+  gradient?: string;
+  tint?: string;
+  specifics: string[];
+};
+
+/**
+ * Profile step 1 — main categories (کتگوری اصلی).
+ * Step 2 — curated specifics per category (دیگه چه چیزهایی رو دوست داری؟).
+ * Specifics use English `interest_categories.name` keys from the DB.
+ * Optional `groups` split section-2 accordions while keeping one main card.
+ */
 export type BroadInterest = {
   id: string;
   label: string;
   emoji: string;
-  parentId: string;
-  /** Maps to interest_categories.group_name for DB resolution */
-  group_name: string;
+  /** Tailwind gradient for selected state / accents */
+  gradient: string;
+  /** Soft tint for headers */
+  tint: string;
+  /** English DB category names under this main category */
+  specifics: string[];
+  /** When set, section 2 shows these rows instead of one combined accordion */
+  groups?: InterestGroup[];
 };
 
+/** Never offer these in profile interest pickers */
+export const BANNED_INTEREST_NAMES = new Set([
+  'Pub Crawls',
+  'Clubbing',
+  'Speed Dating',
+  'Mixology',
+  'Wine Tasting',
+  'Craft Beer',
+]);
+
 export const BROAD_INTERESTS: BroadInterest[] = [
-  // حرکت و ماجراجویی
-  { id: 'sports', label: 'ورزش', emoji: '⚽', parentId: 'move', group_name: 'Sports & Fitness' },
-  { id: 'fitness', label: 'تناسب اندام', emoji: '💪', parentId: 'move', group_name: 'Sports & Fitness' },
-  { id: 'outdoors', label: 'طبیعت', emoji: '🏔️', parentId: 'move', group_name: 'Outdoors & Adventure' },
-  // خلق و کشف
-  { id: 'arts', label: 'هنر', emoji: '🎨', parentId: 'create', group_name: 'Arts & Culture' },
-  { id: 'culture', label: 'فرهنگ', emoji: '🎭', parentId: 'create', group_name: 'Arts & Culture' },
-  { id: 'tech', label: 'فناوری', emoji: '💻', parentId: 'create', group_name: 'Tech & Science' },
-  { id: 'science', label: 'علم', emoji: '🔬', parentId: 'create', group_name: 'Tech & Science' },
-  { id: 'games', label: 'بازی', emoji: '🎮', parentId: 'create', group_name: 'Games & Hobbies' },
-  // ارتباط و اجتماع
-  { id: 'social', label: 'اجتماعی', emoji: '🤝', parentId: 'connect', group_name: 'Social & Nightlife' },
-  { id: 'nightlife', label: 'شب‌زندگی', emoji: '🌙', parentId: 'connect', group_name: 'Social & Nightlife' },
-  { id: 'conversation', label: 'گفت‌وگو', emoji: '💬', parentId: 'connect', group_name: 'Social & Nightlife' },
-  // طعم
-  { id: 'food', label: 'غذا', emoji: '🍽️', parentId: 'taste', group_name: 'Food & Drink' },
-  { id: 'drink', label: 'نوشیدنی', emoji: '☕', parentId: 'taste', group_name: 'Food & Drink' },
-  // رشد
-  { id: 'wellness', label: 'سلامت', emoji: '🧘', parentId: 'grow', group_name: 'Wellness & Lifestyle' },
-  { id: 'growth', label: 'رشد فردی', emoji: '🌱', parentId: 'grow', group_name: 'Wellness & Lifestyle' },
+  {
+    id: 'food_fun',
+    label: 'غذا و تفریح',
+    emoji: '🍕',
+    gradient: 'from-amber-400 to-rose-500',
+    tint: 'bg-amber-50',
+    specifics: [
+      'Fine Dining',
+      'Street Food',
+      'Vegan Cooking',
+      'BBQ & Grilling',
+      'Sushi Making',
+      'Baking Bread',
+      'Food Photography',
+      'Coffee Socials',
+      'Baking',
+      'Cooking Classes',
+      'Picnics',
+    ],
+  },
+  {
+    id: 'nature_travel',
+    label: 'طبیعت و سفر',
+    emoji: '🏔️',
+    gradient: 'from-emerald-400 to-teal-600',
+    tint: 'bg-emerald-50',
+    specifics: [
+      'Hiking',
+      'Camping',
+      'Surfing',
+      'Skiing & Snowboarding',
+      'Scuba Diving',
+      'Kayaking',
+      'Birdwatching',
+      'Fishing',
+      'Mountain Biking',
+      'Sailing',
+      'Rock Climbing',
+      'Day Trips',
+      'City Walks',
+    ],
+  },
+  {
+    id: 'culture_lit',
+    label: 'فرهنگ و ادبیات',
+    emoji: '📚',
+    gradient: 'from-indigo-400 to-purple-600',
+    tint: 'bg-indigo-50',
+    specifics: [
+      'Creative Writing',
+      'Reading & Book Clubs',
+      'Museums & Galleries',
+      'Language Exchange',
+      'Live Podcasts',
+      'Journaling',
+      'Poetry',
+      'Calligraphy',
+    ],
+  },
+  {
+    id: 'games_fun',
+    label: 'بازی و سرگرمی',
+    emoji: '🎮',
+    gradient: 'from-violet-500 to-fuchsia-500',
+    tint: 'bg-violet-50',
+    specifics: [
+      'Board Games',
+      'Video Gaming',
+      'Chess',
+      'Dungeons & Dragons',
+      'Magic: The Gathering',
+      'Trivia Nights',
+      'Karaoke',
+      'Model Building',
+      'Board Game Cafes',
+    ],
+  },
+  {
+    id: 'theater_cinema',
+    label: 'تِاتر و سینما',
+    emoji: '🎬',
+    gradient: 'from-rose-500 to-red-600',
+    tint: 'bg-rose-50',
+    specifics: [
+      'Theater & Acting',
+      'Film & Cinema',
+      'Live Music',
+      'Dance',
+      'Comedy Clubs',
+    ],
+  },
+  {
+    id: 'sports_lifestyle',
+    label: 'ورزش و سبک زندگی',
+    emoji: '⚽',
+    gradient: 'from-lime-400 to-emerald-600',
+    tint: 'bg-lime-50',
+    specifics: [
+      'Soccer',
+      'Wrestling',
+      'Basketball',
+      'Tennis',
+      'Martial Arts',
+      'Bodybuilding',
+      'Yoga',
+      'Meditation',
+      'Running',
+      'Cycling',
+      'Swimming',
+      'Minimalism',
+      'Self-Improvement',
+      'Journaling',
+      'Sustainable Living',
+      'Personal Finance',
+      'Gardening',
+    ],
+    groups: [
+      {
+        id: 'sports',
+        label: 'ورزش',
+        emoji: '⚽',
+        gradient: 'from-lime-400 to-green-600',
+        tint: 'bg-lime-50',
+        specifics: [
+          'Soccer',
+          'Wrestling',
+          'Basketball',
+          'Tennis',
+          'Martial Arts',
+          'Bodybuilding',
+          'Running',
+          'Cycling',
+          'Swimming',
+        ],
+      },
+      {
+        id: 'lifestyle',
+        label: 'سبک زندگی',
+        emoji: '🧘',
+        gradient: 'from-teal-400 to-emerald-600',
+        tint: 'bg-teal-50',
+        specifics: [
+          'Yoga',
+          'Meditation',
+          'Minimalism',
+          'Self-Improvement',
+          'Journaling',
+          'Sustainable Living',
+          'Personal Finance',
+          'Gardening',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'arts_creative',
+    label: 'هنر و خلاقیت',
+    emoji: '🎨',
+    gradient: 'from-fuchsia-500 to-purple-700',
+    tint: 'bg-fuchsia-50',
+    specifics: [
+      'Painting',
+      'Photography',
+      'Fashion & Design',
+      'Pottery & Ceramics',
+      'Architecture',
+      'DIY & Woodworking',
+      'Knitting & Crochet',
+      'Baking',
+      'Calligraphy',
+    ],
+  },
+  {
+    id: 'civic_social',
+    label: 'فعالیت اجتماعی و مدنی',
+    emoji: '🤝',
+    gradient: 'from-sky-400 to-blue-600',
+    tint: 'bg-sky-50',
+    specifics: [
+      'Volunteering',
+      'Networking',
+      'Language Exchange',
+      'Coffee Socials',
+      'Community Service',
+      'Charity Events',
+      'Local Meetups',
+    ],
+  },
 ];
 
 export const MAX_BROAD = 3;
 export const MAX_SPECIFIC = 10;
 export const MIN_INTERESTS_TOTAL = 3;
 
-export function broadParents() {
-  return PARENT_CATEGORIES.filter((p) =>
-    BROAD_INTERESTS.some((b) => b.parentId === p.id)
+export function isAllowedInterestName(name: string) {
+  return !BANNED_INTEREST_NAMES.has(name);
+}
+
+export function categoriesForNames(
+  names: string[],
+  categories: Category[]
+): Category[] {
+  const wanted = new Set(names);
+  return categories.filter(
+    (c) => wanted.has(c.name) && isAllowedInterestName(c.name)
   );
 }
 
-export function broadForParent(parentId: string) {
-  return BROAD_INTERESTS.filter((b) => b.parentId === parentId);
+/** Section-2 accordion rows (splits combined mains via `groups`). */
+export function section2AccordionRows() {
+  return BROAD_INTERESTS.flatMap((broad) => {
+    if (broad.groups?.length) {
+      return broad.groups.map((g) => ({
+        key: g.id,
+        label: g.label,
+        emoji: g.emoji,
+        gradient: g.gradient ?? broad.gradient,
+        tint: g.tint ?? broad.tint,
+        specifics: g.specifics,
+        parent: broad,
+      }));
+    }
+    return [
+      {
+        key: broad.id,
+        label: broad.label,
+        emoji: broad.emoji,
+        gradient: broad.gradient,
+        tint: broad.tint,
+        specifics: broad.specifics,
+        parent: broad,
+      },
+    ];
+  });
 }
 
-/** Resolve selected broad ids → unique category UUIDs (one per group). */
+export function specificsForBroad(
+  broadId: string,
+  categories: Category[]
+): Category[] {
+  const broad = BROAD_INTERESTS.find((b) => b.id === broadId);
+  if (!broad) return [];
+  return categoriesForNames(broad.specifics, categories);
+}
+
+/** Resolve selected broad ids → unique category UUIDs (anchor leaf per broad). */
 export function resolveBroadToCategoryIds(
   broadIds: string[],
-  categories: { id: string; group_name?: string }[]
+  categories: { id: string; name: string; group_name?: string }[]
 ): string[] {
   const ids: string[] = [];
-  const usedGroups = new Set<string>();
+  const used = new Set<string>();
   for (const bid of broadIds) {
-    const broad = BROAD_INTERESTS.find((b) => b.id === bid);
-    if (!broad || usedGroups.has(broad.group_name)) continue;
-    const match = categories.find((c) => c.group_name === broad.group_name);
-    if (match) {
+    const leaves = specificsForBroad(bid, categories as Category[]);
+    const match = leaves[0];
+    if (match && !used.has(match.id)) {
       ids.push(match.id);
-      usedGroups.add(broad.group_name);
+      used.add(match.id);
     }
   }
   return ids;
 }
 
-/** Reverse: DB high-priority category ids → broad option ids (one per group). */
+/** Reverse: DB high-priority category ids → broad option ids. */
 export function categoryIdsToBroadIds(
   categoryIds: string[],
-  categories: { id: string; group_name?: string }[]
+  categories: { id: string; name: string; group_name?: string }[]
 ): string[] {
   const result: string[] = [];
-  const usedGroups = new Set<string>();
+  const usedBroad = new Set<string>();
   for (const cid of categoryIds) {
     const cat = categories.find((c) => c.id === cid);
-    if (!cat?.group_name || usedGroups.has(cat.group_name)) continue;
-    const broad = BROAD_INTERESTS.find((b) => b.group_name === cat.group_name);
-    if (broad) {
+    if (!cat) continue;
+    const broad = BROAD_INTERESTS.find((b) => b.specifics.includes(cat.name));
+    if (broad && !usedBroad.has(broad.id)) {
       result.push(broad.id);
-      usedGroups.add(cat.group_name);
+      usedBroad.add(broad.id);
     }
   }
   return result.slice(0, MAX_BROAD);

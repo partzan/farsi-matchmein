@@ -37,7 +37,7 @@ export function VoteCounterRail({
 
   return (
     <>
-      <div className="sticky top-[4.5rem] z-40 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
+      <div className="sticky top-[5rem] z-40 border-b border-border bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <span className="text-sm font-bold text-muted">{fa.voteCounter.label}</span>
           {chip}

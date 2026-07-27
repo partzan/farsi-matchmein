@@ -2,66 +2,86 @@ import { Link } from 'react-router-dom';
 import { fa } from '../locale/fa';
 import { BrandLogo } from './BrandLogo';
 
+const linkClass =
+  'text-sm font-medium text-foreground/65 transition-colors hover:text-primary';
+
 export function Footer() {
   return (
-    <footer className="mt-auto relative overflow-hidden" dir="rtl">
-      <div className="h-[3px] bg-gradient-to-l from-accent-orange via-accent-purple to-accent-cyan" />
-      <div className="bg-gradient-to-br from-primary via-primary to-primary-dark text-primary-light/75 relative">
-        <div className="absolute -top-24 -start-16 w-72 h-72 rounded-full bg-accent-purple/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -end-10 w-64 h-64 rounded-full bg-accent-orange/15 blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-10 mb-12">
+    <footer className="mt-auto px-3 pb-4 pt-8 sm:px-4 sm:pb-6" dir="rtl">
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl border border-border/70 bg-white shadow-sm">
+        <div className="px-5 py-10 sm:px-8 sm:py-12 lg:px-10">
+          <div className="mb-10 flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-md">
               <BrandLogo size="lg" />
-              <p className="mt-5 text-base leading-relaxed text-primary-light/80">
+              <p className="mt-4 text-sm leading-relaxed text-muted sm:text-base">
                 {fa.footer.tagline}
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-8 lg:gap-12 flex-1 lg:max-w-2xl">
+            <div className="grid flex-1 grid-cols-2 gap-8 sm:grid-cols-3 lg:max-w-2xl lg:gap-12">
               <div>
-                <h4 className="font-extrabold text-white mb-4 text-sm tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-cyan" />
+                <h4 className="mb-4 text-sm font-extrabold text-foreground">
                   {fa.footer.product}
                 </h4>
                 <ul className="space-y-3">
-                  <li><Link to="/events" className="text-primary-light/70 hover:text-accent-cyan transition-colors text-sm">{fa.footer.discoverEvents}</Link></li>
-                  <li><Link to="/" className="text-primary-light/70 hover:text-accent-cyan transition-colors text-sm">{fa.footer.howItWorks}</Link></li>
+                  <li>
+                    <Link to="/events" className={linkClass}>
+                      {fa.footer.discoverEvents}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/" className={linkClass}>
+                      {fa.footer.howItWorks}
+                    </Link>
+                  </li>
                 </ul>
               </div>
 
               <div>
-                <h4 className="font-extrabold text-white mb-4 text-sm tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-orange" />
+                <h4 className="mb-4 text-sm font-extrabold text-foreground">
                   {fa.footer.company}
                 </h4>
                 <ul className="space-y-3">
-                  <li><Link to="/" className="text-primary-light/70 hover:text-accent-orange transition-colors text-sm">{fa.footer.about}</Link></li>
-                  <li><Link to="/" className="text-primary-light/70 hover:text-accent-orange transition-colors text-sm">{fa.footer.contact}</Link></li>
+                  <li>
+                    <Link to="/" className={linkClass}>
+                      {fa.footer.about}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/" className={linkClass}>
+                      {fa.footer.contact}
+                    </Link>
+                  </li>
                 </ul>
               </div>
 
               <div className="col-span-2 sm:col-span-1">
-                <h4 className="font-extrabold text-white mb-4 text-sm tracking-wide flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-purple" />
+                <h4 className="mb-4 text-sm font-extrabold text-foreground">
                   {fa.footer.legal}
                 </h4>
                 <ul className="space-y-3">
-                  <li><Link to="/" className="text-primary-light/70 hover:text-accent-purple transition-colors text-sm">{fa.footer.privacy}</Link></li>
-                  <li><Link to="/" className="text-primary-light/70 hover:text-accent-purple transition-colors text-sm">{fa.footer.terms}</Link></li>
+                  <li>
+                    <Link to="/" className={linkClass}>
+                      {fa.footer.privacy}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/" className={linkClass}>
+                      {fa.footer.terms}
+                    </Link>
+                  </li>
                 </ul>
               </div>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-primary-light/50 text-sm">
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-border/70 pt-6 sm:flex-row">
+            <p className="text-sm text-muted">
               © {new Date().getFullYear()} {fa.brand}
-              <span className="text-accent-cyan mx-1.5">·</span>
+              <span className="mx-1.5 text-primary/40">·</span>
               {fa.brandEn}
             </p>
-            <p className="text-primary-light/40 text-xs">{fa.footer.rights}</p>
+            <p className="text-xs text-muted/80">{fa.footer.rights}</p>
           </div>
         </div>
       </div>

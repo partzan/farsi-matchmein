@@ -89,5 +89,18 @@ insert into public.interest_categories (name, group_name, emoji, tagline) values
   ('Personal Finance', 'Wellness & Lifestyle', '💰', 'Managing money and investing'),
   ('Self-Improvement', 'Wellness & Lifestyle', '📈', 'Working on personal growth'),
   ('Journaling', 'Wellness & Lifestyle', '📔', 'Reflecting through daily writing'),
-  ('Sustainable Living', 'Wellness & Lifestyle', '♻️', 'Adopting eco-friendly habits')
+  ('Sustainable Living', 'Wellness & Lifestyle', '♻️', 'Adopting eco-friendly habits'),
+
+  ('Cooking Classes', 'Food & Drink', '👨‍🍳', 'Learning recipes with others'),
+  ('Picnics', 'Food & Drink', '🧺', 'Outdoor meals with friends'),
+  ('Day Trips', 'Outdoors & Adventure', '🗺️', 'Short getaways nearby'),
+  ('City Walks', 'Outdoors & Adventure', '🚶', 'Exploring neighborhoods on foot'),
+  ('Poetry', 'Arts & Culture', '📜', 'Reading and writing poems'),
+  ('Calligraphy', 'Arts & Culture', '🖋️', 'Beautiful handwritten lettering'),
+  ('Board Game Cafes', 'Games & Hobbies', '☕', 'Tabletop games over coffee'),
+  ('Community Service', 'Wellness & Lifestyle', '🏘️', 'Helping local communities'),
+  ('Charity Events', 'Wellness & Lifestyle', '💝', 'Fundraising and giving back'),
+  ('Local Meetups', 'Social & Nightlife', '👥', 'Casual community gatherings'),
+  ('Wrestling', 'Sports & Fitness', '🤼', 'Grappling and traditional wrestling'),
+  ('Bodybuilding', 'Sports & Fitness', '💪', 'Building muscle and physique')
 on conflict (name) do update set group_name = excluded.group_name, emoji = excluded.emoji, tagline = excluded.tagline;

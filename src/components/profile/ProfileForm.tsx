@@ -42,12 +42,56 @@ function StepCounter({
   );
 }
 
-function HelperBox({ title, children }: { title: string; children: React.ReactNode }) {
+/** Playful two-step wizard header: 👤 ─── 🎯 */
+function FunStepper({
+  step,
+  onStepClick,
+}: {
+  step: number;
+  onStepClick: (s: number) => void;
+}) {
+  const steps = [
+    { n: 1, emoji: '👤', label: fa.profileSetup.stepInfo },
+    { n: 2, emoji: '🎯', label: fa.profileSetup.stepInterests },
+  ];
   return (
-    <aside className="rounded-2xl border-2 border-dashed border-accent-purple/50 bg-primary-light/70 p-5">
-      <p className="text-xs font-black tracking-wide text-primary">{title}</p>
-      <div className="mt-2 text-sm leading-relaxed text-foreground">{children}</div>
-    </aside>
+    <div className="mx-auto flex w-full max-w-sm items-center gap-2">
+      {steps.map((s, i) => (
+        <div key={s.n} className={`flex items-center ${i > 0 ? 'flex-1' : ''}`}>
+          {i > 0 && (
+            <div className="relative mx-2 h-1.5 flex-1 overflow-hidden rounded-full bg-border">
+              <div
+                className={`absolute inset-y-0 start-0 rounded-full bg-gradient-to-l from-accent-purple to-primary transition-all duration-500 ${
+                  step >= s.n ? 'w-full' : 'w-0'
+                }`}
+              />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => onStepClick(s.n)}
+            className="flex flex-col items-center gap-1"
+          >
+            <span
+              className={`flex h-12 w-12 items-center justify-center rounded-full text-xl transition-all duration-300 ${
+                step === s.n
+                  ? 'scale-110 bg-gradient-to-br from-primary to-accent-purple shadow-lg shadow-primary/30 ring-4 ring-primary-light'
+                  : step > s.n
+                    ? 'bg-emerald-500/15'
+                    : 'bg-background ring-2 ring-border'
+              }`}
+            >
+              {step > s.n ? '✅' : s.emoji}
+            </span>
+            <span
+              className={`text-xs font-black ${step === s.n ? 'text-primary' : 'text-muted'}`}
+            >
+              {s.label}
+            </span>
+          </button>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -280,42 +324,33 @@ export function ProfileForm({ mode }: ProfileFormProps) {
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-black text-foreground">
-            {mode === 'setup' ? fa.profileSetup.title : fa.profile.title}
-          </h1>
-          {mode === 'edit' && voteTokens !== null && !needsAuth && (
-            <VoteCounterRail remaining={voteTokens} sticky={false} />
+      <div className="mb-6 space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-black text-foreground">
+              {mode === 'setup' ? fa.profileSetup.title : fa.profile.title}
+            </h1>
+            {mode === 'edit' && voteTokens !== null && !needsAuth && (
+              <VoteCounterRail remaining={voteTokens} sticky={false} />
+            )}
+          </div>
+          {step === 1 && (
+            <StepCounter current={step1DoneCount} required={4} label={fa.profileSetup.fieldsLabel} />
           )}
         </div>
-        {step === 1 ? (
-          <StepCounter current={step1DoneCount} required={4} label={fa.profileSetup.fieldsLabel} />
-        ) : (
-          <StepCounter
-            current={interestTotal}
-            required={MIN_INTERESTS_TOTAL}
-            label={fa.profileSetup.interestsLabel}
-          />
-        )}
-      </div>
 
-      {/* Outside-frame helpers ABOVE the form on mobile */}
-      <div className="mb-4 space-y-3 lg:hidden">
+        <FunStepper step={step} onStepClick={setStep} />
+
         {step === 1 && (
-          <HelperBox title={fa.profileSetup.helperTitle}>{fa.profileSetup.helperStep1}</HelperBox>
-        )}
-        {step === 2 && (
-          <>
-            <HelperBox title={fa.profileSetup.helperTitle}>{fa.profileSetup.helperStep2Main}</HelperBox>
-            <HelperBox title={fa.profileSetup.helperTitle}>{fa.profileSetup.helperStep2Feed}</HelperBox>
-          </>
+          <p className="text-center text-lg font-black text-foreground">
+            {fa.profileSetup.step1Fun}
+          </p>
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_270px]">
+      <div className="mx-auto max-w-4xl">
         {/* Main form frame */}
-        <div className="rounded-3xl border border-border bg-white p-6 shadow-sm sm:p-8">
+        <div className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-8">
           {error && (
             <p className="mb-4 rounded-xl bg-accent-red/10 px-3 py-2 text-sm font-semibold text-accent-red">
               {error}
@@ -328,15 +363,20 @@ export function ProfileForm({ mode }: ProfileFormProps) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-primary-light shadow-sm"
+                  className="group relative shrink-0 rounded-full bg-gradient-to-br from-primary via-accent-purple to-accent-orange p-1 shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95"
                 >
-                  <img
-                    src={avatarUrl || getAvatarUrl('', 'default')}
-                    alt=""
-                    className={`h-full w-full object-cover ${uploadingAvatar ? 'opacity-50' : ''}`}
-                  />
-                  <span className="absolute inset-x-0 bottom-0 bg-black/50 py-1 text-center text-[10px] font-bold text-white">
-                    {fa.profile.uploadPhoto}
+                  <span className="relative block h-28 w-28 overflow-hidden rounded-full border-4 border-white">
+                    <img
+                      src={avatarUrl || getAvatarUrl('', 'default')}
+                      alt=""
+                      className={`h-full w-full object-cover ${uploadingAvatar ? 'opacity-50' : ''}`}
+                    />
+                    <span className="absolute inset-x-0 bottom-0 bg-black/50 py-1 text-center text-[10px] font-bold text-white">
+                      {fa.profile.uploadPhoto}
+                    </span>
+                  </span>
+                  <span className="absolute -bottom-1 -end-1 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow-md transition-transform group-hover:rotate-12">
+                    📸
                   </span>
                   <input
                     ref={fileInputRef}
@@ -408,26 +448,19 @@ export function ProfileForm({ mode }: ProfileFormProps) {
             />
           )}
 
-          <div className="mt-8 flex flex-wrap gap-2 border-t border-border pt-5">
+          <div className="mt-8 flex flex-wrap items-center gap-2 border-t border-border pt-5">
             <button
               type="button"
               disabled={step === 1}
               onClick={() => setStep(1)}
-              className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold disabled:opacity-40"
+              className="rounded-full border-2 border-border px-4 py-2.5 text-sm font-bold transition-colors hover:border-primary disabled:opacity-40"
             >
               {fa.profileSetup.back}
             </button>
             <button
               type="button"
               onClick={leaveEarly}
-              className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-muted"
-            >
-              {fa.profileSetup.skip}
-            </button>
-            <button
-              type="button"
-              onClick={leaveEarly}
-              className="rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-muted"
+              className="rounded-full border-2 border-transparent px-4 py-2.5 text-sm font-bold text-muted transition-colors hover:text-foreground"
             >
               {fa.profileSetup.editLater}
             </button>
@@ -436,35 +469,22 @@ export function ProfileForm({ mode }: ProfileFormProps) {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="ms-auto rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white"
+                className="ms-auto rounded-full bg-gradient-to-l from-primary to-accent-purple px-7 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
               >
-                {fa.profileSetup.next}
+                {fa.profileSetup.next} ←
               </button>
             ) : (
               <button
                 type="button"
                 disabled={!canSave || saving}
                 onClick={requireLoginToSave}
-                className="ms-auto rounded-xl bg-gradient-to-l from-accent-orange to-accent-red px-5 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="ms-auto rounded-full bg-gradient-to-l from-accent-orange to-accent-red px-7 py-3 text-sm font-black text-white shadow-lg shadow-accent-red/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0"
                 title={!canSave ? fa.profileSetup.saveDisabledHint : undefined}
               >
-                {saving ? fa.common.saving : fa.profileSetup.save}
+                {saving ? fa.common.saving : `${fa.profileSetup.save} 🚀`}
               </button>
             )}
           </div>
-        </div>
-
-        {/* Outside-frame helpers — desktop sidebar */}
-        <div className="hidden space-y-3 lg:block">
-          {step === 1 && (
-            <HelperBox title={fa.profileSetup.helperTitle}>{fa.profileSetup.helperStep1}</HelperBox>
-          )}
-          {step === 2 && (
-            <>
-              <HelperBox title={fa.profileSetup.helperTitle}>{fa.profileSetup.helperStep2Main}</HelperBox>
-              <HelperBox title={fa.profileSetup.helperTitle}>{fa.profileSetup.helperStep2Feed}</HelperBox>
-            </>
-          )}
         </div>
       </div>
     </div>

@@ -19,8 +19,10 @@ export const CATEGORY_FA: Record<string, string> = {
   Soccer: 'فوتبال',
   Yoga: 'یوگا',
   Weightlifting: 'وزنه‌برداری',
+  Bodybuilding: 'بدنسازی',
+  Wrestling: 'کشتی',
   'Rock Climbing': 'صخره‌نوردی',
-  'Martial Arts': 'هنرهای رزمی',
+  'Martial Arts': 'ورزش‌های رزمی',
   Golf: 'گلف',
   Volleyball: 'والیبال',
   'Web Development': 'توسعه وب',
@@ -94,6 +96,16 @@ export const CATEGORY_FA: Record<string, string> = {
   'Self-Improvement': 'خودسازی',
   Journaling: 'دفترخوانی',
   'Sustainable Living': 'زندگی پایدار',
+  'Cooking Classes': 'کلاس آشپزی',
+  Picnics: 'پیک‌نیک',
+  'Day Trips': 'سفر یک‌روزه',
+  'City Walks': 'پیاده‌روی شهری',
+  Poetry: 'شعر',
+  Calligraphy: 'خوشنویسی',
+  'Board Game Cafes': 'کافه بازی رومیزی',
+  'Community Service': 'خدمت اجتماعی',
+  'Charity Events': 'رویداد خیریه',
+  'Local Meetups': 'دورهمی محلی',
 };
 
 export function groupFa(name: string | undefined): string {
