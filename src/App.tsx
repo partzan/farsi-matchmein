@@ -11,6 +11,7 @@ import { EventDetail } from './pages/EventDetail';
 import { MyEvents } from './pages/MyEvents';
 import { AdminEvents } from './pages/AdminEvents';
 import { Discover } from './pages/Discover';
+import { Login } from './pages/Login';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/events" element={<Events />} />
             <Route path="/discover" element={<Discover />} />
             <Route path="/admin/events" element={<AdminEvents />} />

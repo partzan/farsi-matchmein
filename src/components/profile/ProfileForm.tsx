@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { PhoneOtpField } from './PhoneOtpField';
 import { ProfileInterestsStep } from './ProfileInterestsStep';
 import { VoteCounterRail } from '../VoteCounterRail';
@@ -11,6 +11,7 @@ import {
   categoryIdsToBroadIds,
   resolveBroadToCategoryIds,
 } from '../../lib/broadInterests';
+import { signInWithGoogle } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { fa } from '../../locale/fa';
 
@@ -250,7 +251,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
 
   const requireLoginToSave = async () => {
     if (needsAuth) {
-      await supabase.auth.signInWithOAuth({ provider: 'google' });
+      await signInWithGoogle('/');
       return;
     }
     await handleSave();
@@ -261,13 +262,21 @@ export function ProfileForm({ mode }: ProfileFormProps) {
       {needsAuth && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-orange/40 bg-accent-orange/10 px-4 py-3">
           <p className="text-sm font-bold text-foreground">{fa.profileSetup.loginRequired}</p>
-          <button
-            type="button"
-            onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
-          >
-            {fa.nav.loginGoogle}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/login"
+              className="rounded-xl border border-primary px-4 py-2 text-sm font-bold text-primary"
+            >
+              {fa.nav.login}
+            </Link>
+            <button
+              type="button"
+              onClick={() => signInWithGoogle('/')}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
+            >
+              {fa.nav.loginGoogle}
+            </button>
+          </div>
         </div>
       )}
 

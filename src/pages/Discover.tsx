@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { VoteCounterRail } from '../components/VoteCounterRail';
 import { useVoteTokens } from '../hooks/useVoteTokens';
+import { signInWithGoogle } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { fa } from '../locale/fa';
 import { categoryFa } from '../locale/categoriesFa';
@@ -250,9 +251,13 @@ export function Discover() {
           {!userId ? (
             <p className="rounded-2xl border border-border bg-white px-4 py-6 text-sm text-muted">
               {fa.discover.friendsLoginHint}{' '}
+              <Link to="/login" className="font-bold text-primary">
+                {fa.login.loginLink}
+              </Link>
+              {' · '}
               <button
                 type="button"
-                onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+                onClick={() => signInWithGoogle('/')}
                 className="font-bold text-primary"
               >
                 {fa.nav.loginGoogle}
