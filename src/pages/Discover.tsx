@@ -189,9 +189,15 @@ export function Discover() {
             ))}
           </div>
         ) : shown.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border bg-white px-6 py-16 text-center text-muted">
-            {fa.discover.empty}
-          </p>
+          <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-16 text-center">
+            <p className="text-muted">{fa.discover.empty}</p>
+            <Link
+              to="/events"
+              className="mt-5 inline-flex rounded-full bg-gradient-to-l from-primary to-accent-purple px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl"
+            >
+              {fa.discover.emptyVoteCta}
+            </Link>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -257,7 +263,7 @@ export function Discover() {
               {' · '}
               <button
                 type="button"
-                onClick={() => signInWithGoogle('/')}
+                onClick={() => signInWithGoogle('/events')}
                 className="font-bold text-primary"
               >
                 {fa.nav.loginGoogle}

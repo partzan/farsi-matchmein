@@ -47,7 +47,7 @@ export function SignupModal({ open, onClose, onSuccess }: SignupModalProps) {
 
   const handleGoogleSignup = async () => {
     setError(null);
-    const { error: oauthError } = await signInWithGoogle('/');
+    const { error: oauthError } = await signInWithGoogle('/events');
     if (oauthError) {
       setError(mapAuthErrorMessage(oauthError.message));
       return;

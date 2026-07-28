@@ -1,9 +1,31 @@
 import { supabase } from './supabase';
 import { fa } from '../locale/fa';
 
+/** Same-origin relative path only — blocks open redirects. */
+export function getSafeNextPath(
+  next: string | null | undefined,
+  fallback = '/events',
+): string {
+  if (!next) return fallback;
+  if (!next.startsWith('/') || next.startsWith('//')) return fallback;
+  return next;
+}
+
+/** Build /login URL with optional signup mode and post-auth return path. */
+export function loginUrl(opts?: { mode?: 'login' | 'signup'; next?: string }) {
+  const params = new URLSearchParams();
+  if (opts?.mode === 'signup') params.set('mode', 'signup');
+  if (opts?.next) {
+    const safe = getSafeNextPath(opts.next, '');
+    if (safe) params.set('next', safe);
+  }
+  const q = params.toString();
+  return q ? `/login?${q}` : '/login';
+}
+
 /** Google OAuth — always return to this site origin (must be in Supabase redirect allow-list). */
-export function signInWithGoogle(redirectPath = '/') {
-  const path = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
+export function signInWithGoogle(redirectPath = '/events') {
+  const path = getSafeNextPath(redirectPath, '/events');
   const redirectTo = `${window.location.origin}${path}`;
   return supabase.auth.signInWithOAuth({
     provider: 'google',

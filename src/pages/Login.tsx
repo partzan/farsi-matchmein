@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { mapAuthErrorMessage, signInWithGoogle } from '../lib/auth';
+import { getSafeNextPath, mapAuthErrorMessage, signInWithGoogle } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { fa } from '../locale/fa';
 import { BrandLogo } from '../components/BrandLogo';
@@ -11,6 +11,7 @@ export function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialMode: Mode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
+  const postAuthPath = getSafeNextPath(searchParams.get('next'), '/events');
 
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState('');
@@ -21,7 +22,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  const afterAuth = async (isSignupIntent: boolean) => {
+  const afterAuth = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -29,20 +30,7 @@ export function Login() {
       setError(fa.login.verifyFail);
       return;
     }
-
-    const { data: profile } = await supabase
-      .from('users')
-      .select('display_name')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    const { count } = await supabase
-      .from('user_interests')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    const isNew = isSignupIntent || !profile?.display_name || (count ?? 0) < 3;
-    navigate(isNew ? '/profile-setup' : '/events', { replace: true });
+    navigate(postAuthPath, { replace: true });
   };
 
   const submitEmail = async (e: React.FormEvent) => {
@@ -65,12 +53,12 @@ export function Login() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: trimmed,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/` },
+          options: { emailRedirectTo: `${window.location.origin}${postAuthPath}` },
         });
         if (signUpError) throw signUpError;
 
         if (data.session) {
-          await afterAuth(true);
+          await afterAuth();
           return;
         }
 
@@ -81,7 +69,7 @@ export function Login() {
           password,
         });
         if (!signInError) {
-          await afterAuth(true);
+          await afterAuth();
           return;
         }
 
@@ -95,7 +83,7 @@ export function Login() {
           password,
         });
         if (signInError) throw signInError;
-        await afterAuth(false);
+        await afterAuth();
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : fa.login.emailFail;
@@ -108,7 +96,7 @@ export function Login() {
   const handleGoogle = async () => {
     setError(null);
     setInfo(null);
-    const { error: oauthError } = await signInWithGoogle('/');
+    const { error: oauthError } = await signInWithGoogle(postAuthPath);
     if (oauthError) setError(mapAuthErrorMessage(oauthError.message));
   };
 
@@ -134,7 +122,7 @@ export function Login() {
     }
 
     setLoading(false);
-    navigate('/events', { replace: true });
+    navigate(postAuthPath, { replace: true });
   };
 
   return (

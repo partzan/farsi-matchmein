@@ -5,7 +5,7 @@ import { Menu, X } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import { fa } from '../locale/fa';
 import { BrandLogo } from './BrandLogo';
-import { signInWithGoogle } from '../lib/auth';
+import { loginUrl, signInWithGoogle } from '../lib/auth';
 
 const linkClass =
   'px-3 py-1.5 rounded-full text-sm font-semibold text-foreground/70 hover:text-primary hover:bg-primary-light/70 transition-colors';
@@ -117,6 +117,9 @@ export function Navbar() {
               </>
             ) : (
               <div className="flex items-center gap-1.5 ps-1">
+                <Link to="/profile" className={linkClass}>
+                  {fa.nav.profile}
+                </Link>
                 {!compact && (
                   <Link to="/login?mode=signup" className={linkClass}>
                     {fa.login.createAccount}
@@ -200,24 +203,31 @@ export function Navbar() {
               ) : (
                 <div className="space-y-2 pt-1">
                   <Link
-                    to="/login?mode=signup"
+                    to="/profile"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary"
+                  >
+                    {fa.nav.profile}
+                  </Link>
+                  <Link
+                    to={loginUrl({ mode: 'signup' })}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="block w-full rounded-xl border border-border px-4 py-3 text-center text-base font-bold text-foreground transition-colors hover:bg-primary-light"
                   >
-                    {fa.login.createAccount}
+                    {fa.profileSetup.createNewAccount}
                   </Link>
                   <Link
-                    to="/login"
+                    to={loginUrl()}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-base font-bold text-white"
                   >
-                    {fa.nav.login}
+                    {fa.profileSetup.loginToAccount}
                   </Link>
                   <button
                     type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      signInWithGoogle('/');
+                      signInWithGoogle('/events');
                     }}
                     className="w-full rounded-xl border border-border px-4 py-3 text-base font-bold text-foreground transition-colors hover:bg-primary-light"
                   >

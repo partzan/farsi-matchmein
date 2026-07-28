@@ -11,7 +11,7 @@ import {
   categoryIdsToBroadIds,
   resolveBroadToCategoryIds,
 } from '../../lib/broadInterests';
-import { signInWithGoogle } from '../../lib/auth';
+import { loginUrl } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { fa } from '../../locale/fa';
 
@@ -105,6 +105,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [needsAuth, setNeedsAuth] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -209,8 +210,19 @@ export function ProfileForm({ mode }: ProfileFormProps) {
   const canSave = step2Complete;
 
   const leaveEarly = () => navigate('/events');
+  const returnPath = mode === 'setup' ? '/profile-setup' : '/profile';
+  const loginHref = loginUrl({ next: returnPath });
+  const signupHref = loginUrl({ mode: 'signup', next: returnPath });
+
+  const openAuthGate = () => {
+    if (needsAuth) setShowAuthGate(true);
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (needsAuth) {
+      openAuthGate();
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
 
@@ -295,30 +307,55 @@ export function ProfileForm({ mode }: ProfileFormProps) {
 
   const requireLoginToSave = async () => {
     if (needsAuth) {
-      await signInWithGoogle('/');
+      openAuthGate();
       return;
     }
     await handleSave();
   };
+
+  const AuthCtas = ({ className = '' }: { className?: string }) => (
+    <div className={`flex flex-wrap gap-2 ${className}`}>
+      <Link
+        to={loginHref}
+        className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary-dark"
+      >
+        {fa.profileSetup.loginToAccount}
+      </Link>
+      <Link
+        to={signupHref}
+        className="rounded-xl border-2 border-primary px-4 py-2.5 text-sm font-bold text-primary transition hover:bg-primary-light"
+      >
+        {fa.profileSetup.createNewAccount}
+      </Link>
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8" dir="rtl">
       {needsAuth && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent-orange/40 bg-accent-orange/10 px-4 py-3">
           <p className="text-sm font-bold text-foreground">{fa.profileSetup.loginRequired}</p>
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/login"
-              className="rounded-xl border border-primary px-4 py-2 text-sm font-bold text-primary"
-            >
-              {fa.nav.login}
-            </Link>
+          <AuthCtas />
+        </div>
+      )}
+
+      {showAuthGate && needsAuth && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            aria-label={fa.nav.cancel}
+            onClick={() => setShowAuthGate(false)}
+          />
+          <div className="relative w-full max-w-sm rounded-3xl border border-border bg-white p-6 text-center shadow-2xl">
+            <p className="mb-5 text-base font-bold text-foreground">{fa.profileSetup.authGateHint}</p>
+            <AuthCtas className="justify-center" />
             <button
               type="button"
-              onClick={() => signInWithGoogle('/')}
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white"
+              onClick={() => setShowAuthGate(false)}
+              className="mt-4 text-sm font-semibold text-muted hover:text-primary"
             >
-              {fa.nav.loginGoogle}
+              {fa.nav.cancel}
             </button>
           </div>
         </div>
@@ -339,7 +376,16 @@ export function ProfileForm({ mode }: ProfileFormProps) {
           )}
         </div>
 
-        <FunStepper step={step} onStepClick={setStep} />
+        <FunStepper
+          step={step}
+          onStepClick={(s) => {
+            if (needsAuth) {
+              openAuthGate();
+              return;
+            }
+            setStep(s);
+          }}
+        />
 
         {step === 1 && (
           <p className="text-center text-lg font-black text-foreground">
@@ -348,9 +394,22 @@ export function ProfileForm({ mode }: ProfileFormProps) {
         )}
       </div>
 
-      <div className="mx-auto max-w-4xl">
+      <div className="relative mx-auto max-w-4xl">
+        {needsAuth && (
+          <button
+            type="button"
+            className="absolute inset-0 z-20 cursor-pointer rounded-3xl"
+            aria-label={fa.profileSetup.authGateHint}
+            onClick={openAuthGate}
+          />
+        )}
+
         {/* Main form frame */}
-        <div className="rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-8">
+        <div
+          className={`rounded-3xl border border-border bg-white p-5 shadow-sm sm:p-8 ${
+            needsAuth ? 'pointer-events-none select-none opacity-60' : ''
+          }`}
+        >
           {error && (
             <p className="mb-4 rounded-xl bg-accent-red/10 px-3 py-2 text-sm font-semibold text-accent-red">
               {error}

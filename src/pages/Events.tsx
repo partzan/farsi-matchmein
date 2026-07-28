@@ -256,7 +256,7 @@ export function Events() {
       <div ref={stackRef} className="pointer-events-none fixed left-4 top-1/2 -z-10 h-1 w-1 opacity-0" aria-hidden />
 
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:ps-28">
-      <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 text-center">
+      <div id="voting-stage" className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 text-center scroll-mt-24">
         <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{fa.events.title}</h1>
         <p className="text-gray-500 max-w-2xl mx-auto">
           {user ? fa.events.subtitleUser : fa.events.subtitleGuest}
@@ -384,8 +384,14 @@ export function Events() {
         ) : events.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
             <p className="text-gray-500 font-medium text-lg">{fa.events.noUpcoming}</p>
+            <a
+              href="#voting-stage"
+              className="mt-5 inline-flex rounded-full bg-gradient-to-l from-primary to-accent-purple px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
+            >
+              {fa.events.noUpcomingVoteCta}
+            </a>
             {(userRank === 'administrator' || userRank === 'moderator') && (
-              <Link to="/create-event" className="text-primary font-bold hover:underline mt-2 inline-block">{fa.events.createFirst}</Link>
+              <Link to="/create-event" className="text-primary font-bold hover:underline mt-4 block">{fa.events.createFirst}</Link>
             )}
           </div>
         ) : (
