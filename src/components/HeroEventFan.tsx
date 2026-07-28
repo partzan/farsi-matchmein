@@ -59,50 +59,48 @@ function MobileEventScroll() {
             ref={(el) => {
               panelRefs.current[i] = el;
             }}
-            className="sticky top-0 flex h-dvh w-full flex-col justify-end overflow-hidden"
+            className="sticky top-0 flex h-dvh w-full items-center justify-center overflow-hidden bg-primary-dark"
             style={{ zIndex: i + 1 }}
             aria-current={active === i ? 'true' : undefined}
           >
-            <img
-              src={PHOTOS[i]}
-              alt={ev.caption}
-              loading={i === 0 ? 'eager' : 'lazy'}
-              className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out ${
-                active === i ? 'scale-100' : 'scale-110'
-              }`}
-            />
-            <div
-              className="absolute inset-0 bg-gradient-to-t from-primary-dark/95 via-primary-dark/45 to-primary-dark/15"
-              aria-hidden
-            />
+            <figure className="relative aspect-[4/3] w-[min(100%,calc(100dvh*4/3))] max-h-dvh shrink-0">
+              <img
+                src={PHOTOS[i]}
+                alt={ev.caption}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                className={`h-full w-full object-contain transition-transform duration-700 ease-out ${
+                  active === i ? 'scale-100' : 'scale-105'
+                }`}
+              />
 
-            <div
-              className={`relative z-10 px-6 pb-10 pt-24 transition-all duration-500 ${
-                active === i ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-40'
-              }`}
-            >
-              <span className="mb-3 inline-flex rounded-full bg-emerald-500/90 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur-sm">
-                {fa.home.heldBadge}
-              </span>
-              <h3 className="flex items-center gap-2 text-2xl font-black text-white">
-                <span className="text-3xl" aria-hidden>
-                  {ev.emoji}
+              <figcaption
+                className={`absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-primary-dark/95 via-primary-dark/70 to-transparent px-5 pb-5 pt-14 transition-all duration-500 ${
+                  active === i ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-50'
+                }`}
+              >
+                <span className="mb-2 inline-flex rounded-full bg-emerald-500/90 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur-sm">
+                  {fa.home.heldBadge}
                 </span>
-                {ev.caption}
-              </h3>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/85">{ev.blurb}</p>
+                <h3 className="flex items-center gap-2 text-xl font-black text-white sm:text-2xl">
+                  <span className="text-2xl sm:text-3xl" aria-hidden>
+                    {ev.emoji}
+                  </span>
+                  {ev.caption}
+                </h3>
+                <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85">{ev.blurb}</p>
 
-              <div className="mt-6 flex items-center gap-2" aria-hidden>
-                {fa.home.heroEvents.map((_, dot) => (
-                  <span
-                    key={dot}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      dot === active ? 'w-6 bg-accent-cyan' : 'w-1.5 bg-white/40'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
+                <div className="mt-4 flex items-center gap-2" aria-hidden>
+                  {fa.home.heroEvents.map((_, dot) => (
+                    <span
+                      key={dot}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${
+                        dot === active ? 'w-6 bg-accent-cyan' : 'w-1.5 bg-white/40'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </figcaption>
+            </figure>
           </article>
         ))}
       </div>
