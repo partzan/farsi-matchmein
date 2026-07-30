@@ -143,7 +143,7 @@ export function ProfilePreferencesStep({
               <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-primary-light text-[10px] font-black text-primary">
                 {n}
               </span>
-              <span>{fa.profileSetup.introversionMarks[String(n)]}</span>
+              <span>{introLabel(n)}</span>
             </li>
           ))}
         </ul>
