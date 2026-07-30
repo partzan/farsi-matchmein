@@ -307,6 +307,15 @@ alter table users add column if not exists max_distance_km integer default 50;
 alter table users add column if not exists location_preference text default 'city';
 alter table users add column if not exists rank text default 'user' check (rank in ('guest', 'user', 'moderator', 'administrator'));
 
+-- Profile preferences (birth, event age band, introversion band, marital)
+alter table users add column if not exists birth_date date;
+alter table users add column if not exists event_age_min integer;
+alter table users add column if not exists event_age_max integer;
+alter table users add column if not exists introversion_min integer;
+alter table users add column if not exists introversion_max integer;
+alter table users add column if not exists marital_status text;
+alter table users add column if not exists personality_answers jsonb default '{}'::jsonb;
+
 
 -- Match Making Engine
 alter table user_interests add column if not exists priority_level integer default 2;

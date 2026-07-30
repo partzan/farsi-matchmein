@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PhoneOtpField } from './PhoneOtpField';
+import { BirthDatePicker } from './BirthDatePicker';
 import { ProfileInterestsStep } from './ProfileInterestsStep';
+import {
+  ProfilePreferencesStep,
+  clampEventAge,
+  eventAgeBounds,
+  type MaritalStatus,
+} from './ProfilePreferencesStep';
 import { VoteCounterRail } from '../VoteCounterRail';
 import { getAvatarUrl } from '../../lib/avatars';
 import {
@@ -12,10 +19,19 @@ import {
   resolveBroadToCategoryIds,
 } from '../../lib/broadInterests';
 import { loginUrl } from '../../lib/auth';
+import {
+  personalityComplete,
+  type PersonalityAnswers,
+} from '../../lib/personalityQuestions';
 import { supabase } from '../../lib/supabase';
 import { fa } from '../../locale/fa';
 
 type Category = { id: string; name: string; emoji?: string; group_name?: string; tagline?: string };
+
+const MARITAL_OPTIONS: MaritalStatus[] = ['single', 'married'];
+
+const DEFAULT_EVENT_AGE: [number, number] = [22, 40];
+const DEFAULT_INTROVERSION: [number, number] = [3, 7];
 
 function StepCounter({
   current,
@@ -42,7 +58,7 @@ function StepCounter({
   );
 }
 
-/** Playful two-step wizard header: 👤 ─── 🎯 */
+/** Playful three-step wizard: 👤 ─── 🎯 ─── 🎚️ */
 function FunStepper({
   step,
   onStepClick,
@@ -53,13 +69,14 @@ function FunStepper({
   const steps = [
     { n: 1, emoji: '👤', label: fa.profileSetup.stepInfo },
     { n: 2, emoji: '🎯', label: fa.profileSetup.stepInterests },
+    { n: 3, emoji: '🎚️', label: fa.profileSetup.stepPrefs },
   ];
   return (
-    <div className="mx-auto flex w-full max-w-sm items-center gap-2">
+    <div className="mx-auto flex w-full max-w-md items-center gap-1 sm:gap-2">
       {steps.map((s, i) => (
         <div key={s.n} className={`flex items-center ${i > 0 ? 'flex-1' : ''}`}>
           {i > 0 && (
-            <div className="relative mx-2 h-1.5 flex-1 overflow-hidden rounded-full bg-border">
+            <div className="relative mx-1.5 h-1.5 flex-1 overflow-hidden rounded-full bg-border sm:mx-2">
               <div
                 className={`absolute inset-y-0 start-0 rounded-full bg-gradient-to-l from-accent-purple to-primary transition-all duration-500 ${
                   step >= s.n ? 'w-full' : 'w-0'
@@ -73,7 +90,7 @@ function FunStepper({
             className="flex flex-col items-center gap-1"
           >
             <span
-              className={`flex h-12 w-12 items-center justify-center rounded-full text-xl transition-all duration-300 ${
+              className={`flex h-11 w-11 items-center justify-center rounded-full text-lg transition-all duration-300 sm:h-12 sm:w-12 sm:text-xl ${
                 step === s.n
                   ? 'scale-110 bg-gradient-to-br from-primary to-accent-purple shadow-lg shadow-primary/30 ring-4 ring-primary-light'
                   : step > s.n
@@ -84,7 +101,9 @@ function FunStepper({
               {step > s.n ? '✅' : s.emoji}
             </span>
             <span
-              className={`text-xs font-black ${step === s.n ? 'text-primary' : 'text-muted'}`}
+              className={`max-w-[4.5rem] text-center text-[10px] font-black leading-tight sm:max-w-none sm:text-xs ${
+                step === s.n ? 'text-primary' : 'text-muted'
+              }`}
             >
               {s.label}
             </span>
@@ -118,6 +137,11 @@ export function ProfileForm({ mode }: ProfileFormProps) {
   const [phone, setPhone] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [email, setEmail] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState<MaritalStatus | ''>('');
+  const [eventAge, setEventAge] = useState<[number, number]>(DEFAULT_EVENT_AGE);
+  const [introversion, setIntroversion] = useState<[number, number]>(DEFAULT_INTROVERSION);
+  const [personality, setPersonality] = useState<PersonalityAnswers>({});
 
   const [broadIds, setBroadIds] = useState<string[]>([]);
   const [specificIds, setSpecificIds] = useState<string[]>([]);
@@ -151,7 +175,9 @@ export function ProfileForm({ mode }: ProfileFormProps) {
 
         const { data: profile } = await supabase
           .from('users')
-          .select('display_name, avatar_url, vote_tokens')
+          .select(
+            'display_name, avatar_url, vote_tokens, birth_date, marital_status, event_age_min, event_age_max, introversion_min, introversion_max, personality_answers',
+          )
           .eq('id', user.id)
           .maybeSingle();
         if (cancelled) return;
@@ -169,6 +195,17 @@ export function ProfileForm({ mode }: ProfileFormProps) {
 
         if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
         if (profile?.vote_tokens !== undefined) setVoteTokens(profile.vote_tokens);
+        if (profile?.birth_date) setBirthDate(String(profile.birth_date).slice(0, 10));
+        if (profile?.marital_status) setMaritalStatus(profile.marital_status as MaritalStatus);
+        if (profile?.event_age_min != null && profile?.event_age_max != null) {
+          setEventAge([profile.event_age_min, profile.event_age_max]);
+        }
+        if (profile?.introversion_min != null && profile?.introversion_max != null) {
+          setIntroversion([profile.introversion_min, profile.introversion_max]);
+        }
+        if (profile?.personality_answers && typeof profile.personality_answers === 'object') {
+          setPersonality(profile.personality_answers as PersonalityAnswers);
+        }
 
         const { data: interests } = await supabase
           .from('user_interests')
@@ -202,12 +239,40 @@ export function ProfileForm({ mode }: ProfileFormProps) {
     if (firstName.trim()) n += 1;
     if (lastName.trim()) n += 1;
     if (phoneVerified && phone.trim().length >= 10) n += 1;
+    if (birthDate) n += 1;
+    if (maritalStatus) n += 1;
     return n;
-  }, [avatarUrl, firstName, lastName, phone, phoneVerified]);
+  }, [avatarUrl, firstName, lastName, phone, phoneVerified, birthDate, maritalStatus]);
+
+  const userAge = useMemo(() => {
+    if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
+    const [y, m, d] = birthDate.split('-').map(Number);
+    const today = new Date();
+    let age = today.getFullYear() - y;
+    const md = today.getMonth() + 1 - m;
+    if (md < 0 || (md === 0 && today.getDate() < d)) age -= 1;
+    return age >= 0 ? age : null;
+  }, [birthDate]);
+
+  useEffect(() => {
+    if (userAge == null) return;
+    setEventAge((prev) => clampEventAge(prev, userAge));
+  }, [userAge]);
 
   const interestTotal = broadIds.length + specificIds.length;
   const step2Complete = interestTotal >= MIN_INTERESTS_TOTAL;
-  const canSave = step2Complete;
+  const step1RequiredDone = Boolean(birthDate && maritalStatus);
+  const ageBounds = eventAgeBounds(userAge);
+  const step3Complete =
+    !!ageBounds &&
+    eventAge[0] >= ageBounds.min &&
+    eventAge[1] <= ageBounds.max &&
+    eventAge[0] <= eventAge[1] &&
+    introversion[0] >= 1 &&
+    introversion[1] <= 10 &&
+    introversion[0] <= introversion[1] &&
+    personalityComplete(personality);
+  const canSave = step2Complete && step1RequiredDone && step3Complete;
 
   const leaveEarly = () => navigate('/events');
   const returnPath = mode === 'setup' ? '/profile-setup' : '/profile';
@@ -274,6 +339,13 @@ export function ProfileForm({ mode }: ProfileFormProps) {
         .update({
           display_name,
           avatar_url: avatarUrl || null,
+          birth_date: birthDate || null,
+          marital_status: maritalStatus || null,
+          event_age_min: eventAge[0],
+          event_age_max: eventAge[1],
+          introversion_min: introversion[0],
+          introversion_max: introversion[1],
+          personality_answers: personality,
           profile_updated_at: new Date().toISOString(),
         })
         .eq('id', user.id);
@@ -372,7 +444,14 @@ export function ProfileForm({ mode }: ProfileFormProps) {
             )}
           </div>
           {step === 1 && (
-            <StepCounter current={step1DoneCount} required={4} label={fa.profileSetup.fieldsLabel} />
+            <StepCounter current={step1DoneCount} required={6} label={fa.profileSetup.fieldsLabel} />
+          )}
+          {step === 2 && (
+            <StepCounter
+              current={interestTotal}
+              required={MIN_INTERESTS_TOTAL}
+              label={fa.profileSetup.interestsLabel}
+            />
           )}
         </div>
 
@@ -390,6 +469,11 @@ export function ProfileForm({ mode }: ProfileFormProps) {
         {step === 1 && (
           <p className="text-center text-lg font-black text-foreground">
             {fa.profileSetup.step1Fun}
+          </p>
+        )}
+        {step === 2 && (
+          <p className="text-center text-lg font-black text-foreground">
+            {fa.profileSetup.step2Fun}
           </p>
         )}
       </div>
@@ -478,6 +562,34 @@ export function ProfileForm({ mode }: ProfileFormProps) {
                     onClearVerified={() => setPhoneVerified(false)}
                   />
 
+                  <BirthDatePicker value={birthDate} onChange={setBirthDate} />
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-bold">
+                      {fa.profileSetup.maritalStatus}{' '}
+                      <span className="text-accent-red">*</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {MARITAL_OPTIONS.map((opt) => {
+                        const selected = maritalStatus === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setMaritalStatus(opt)}
+                            className={`rounded-full px-3.5 py-2 text-sm font-bold transition-all ${
+                              selected
+                                ? 'bg-primary text-white shadow-md shadow-primary/25'
+                                : 'border border-border bg-background text-foreground hover:border-primary'
+                            }`}
+                          >
+                            {fa.profileSetup.maritalOptions[opt]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="mb-1.5 block text-sm font-bold">
                       {fa.profileSetup.email}{' '}
@@ -507,11 +619,23 @@ export function ProfileForm({ mode }: ProfileFormProps) {
             />
           )}
 
+          {step === 3 && (
+            <ProfilePreferencesStep
+              userAge={userAge}
+              eventAge={eventAge}
+              onEventAgeChange={setEventAge}
+              introversion={introversion}
+              onIntroversionChange={setIntroversion}
+              personality={personality}
+              onPersonalityChange={setPersonality}
+            />
+          )}
+
           <div className="mt-8 flex flex-wrap items-center gap-2 border-t border-border pt-5">
             <button
               type="button"
               disabled={step === 1}
-              onClick={() => setStep(1)}
+              onClick={() => setStep((s) => Math.max(1, s - 1))}
               className="rounded-full border-2 border-border px-4 py-2.5 text-sm font-bold transition-colors hover:border-primary disabled:opacity-40"
             >
               {fa.profileSetup.back}
@@ -524,10 +648,25 @@ export function ProfileForm({ mode }: ProfileFormProps) {
               {fa.profileSetup.editLater}
             </button>
 
-            {step === 1 ? (
+            {step < 3 ? (
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => {
+                  if (step === 1 && !step1RequiredDone) {
+                    setError(
+                      !birthDate
+                        ? fa.profileSetup.birthDateRequired
+                        : fa.profileSetup.maritalRequired,
+                    );
+                    return;
+                  }
+                  if (step === 2 && !step2Complete) {
+                    setError(fa.profileSetup.saveDisabledHint);
+                    return;
+                  }
+                  setError(null);
+                  setStep((s) => s + 1);
+                }}
                 className="ms-auto rounded-full bg-gradient-to-l from-primary to-accent-purple px-7 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
               >
                 {fa.profileSetup.next} ←
@@ -538,7 +677,15 @@ export function ProfileForm({ mode }: ProfileFormProps) {
                 disabled={!canSave || saving}
                 onClick={requireLoginToSave}
                 className="ms-auto rounded-full bg-gradient-to-l from-accent-orange to-accent-red px-7 py-3 text-sm font-black text-white shadow-lg shadow-accent-red/25 transition-all hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0"
-                title={!canSave ? fa.profileSetup.saveDisabledHint : undefined}
+                title={
+                  !canSave
+                    ? !step2Complete
+                      ? fa.profileSetup.saveDisabledHint
+                      : !step1RequiredDone
+                        ? fa.profileSetup.birthDateRequired
+                        : fa.profileSetup.prefsIncomplete
+                    : undefined
+                }
               >
                 {saving ? fa.common.saving : `${fa.profileSetup.save} 🚀`}
               </button>
