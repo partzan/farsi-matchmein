@@ -14,7 +14,7 @@ alter table public.users
   check (
     event_age_min is null
     or event_age_max is null
-    or (event_age_min >= 18 and event_age_max <= 80 and event_age_min <= event_age_max)
+    or (event_age_min >= 15 and event_age_max <= 80 and event_age_min <= event_age_max)
   );
 
 alter table public.users
