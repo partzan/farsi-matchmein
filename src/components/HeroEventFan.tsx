@@ -8,14 +8,6 @@ const PHOTOS = [
   '/hero/boardgame.png',
 ];
 
-/* Tilt + vertical offset per card; hover straightens and lifts */
-const CARD_POSES = [
-  '-rotate-6 translate-y-3',
-  'rotate-2 -translate-y-1',
-  '-rotate-2 translate-y-2',
-  'rotate-6 -translate-y-2',
-];
-
 function MobileEventScroll() {
   const [active, setActive] = useState(0);
   const panelRefs = useRef<(HTMLElement | null)[]>([]);
@@ -42,13 +34,10 @@ function MobileEventScroll() {
 
   return (
     <div className="md:hidden">
-      <p className="mb-4 px-4 text-center text-sm font-black text-muted">
+      <p className="mb-2 px-4 text-center text-sm font-bold text-foreground">
         {fa.home.heroEventsLabel}
       </p>
-      <p className="mb-6 flex items-center justify-center gap-2 px-4 text-xs font-bold text-primary/70">
-        <span className="inline-block animate-bounce text-base" aria-hidden>
-          ↓
-        </span>
+      <p className="mb-6 px-4 text-center text-xs font-medium text-muted">
         {fa.home.heroEventsScrollHint}
       </p>
 
@@ -68,33 +57,28 @@ function MobileEventScroll() {
                 src={PHOTOS[i]}
                 alt={ev.caption}
                 loading={i === 0 ? 'eager' : 'lazy'}
-                className={`h-full w-full object-contain transition-transform duration-700 ease-out ${
-                  active === i ? 'scale-100' : 'scale-105'
+                className={`h-full w-full object-cover transition-opacity duration-500 ${
+                  active === i ? 'opacity-100' : 'opacity-80'
                 }`}
               />
 
               <figcaption
-                className={`absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-primary-dark/95 via-primary-dark/70 to-transparent px-5 pb-5 pt-14 transition-all duration-500 ${
-                  active === i ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-50'
+                className={`absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-primary-dark via-primary-dark/75 to-transparent px-5 pb-6 pt-16 transition-opacity duration-400 ${
+                  active === i ? 'opacity-100' : 'opacity-60'
                 }`}
               >
-                <span className="mb-2 inline-flex rounded-full bg-emerald-500/90 px-2.5 py-1 text-[10px] font-black text-white backdrop-blur-sm">
+                <span className="mb-2 inline-block text-[11px] font-bold uppercase tracking-wide text-white/70">
                   {fa.home.heldBadge}
                 </span>
-                <h3 className="flex items-center gap-2 text-xl font-black text-white sm:text-2xl">
-                  <span className="text-2xl sm:text-3xl" aria-hidden>
-                    {ev.emoji}
-                  </span>
-                  {ev.caption}
-                </h3>
+                <h3 className="text-xl font-black text-white sm:text-2xl">{ev.caption}</h3>
                 <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85">{ev.blurb}</p>
 
-                <div className="mt-4 flex items-center gap-2" aria-hidden>
+                <div className="mt-4 flex items-center gap-1.5" aria-hidden>
                   {fa.home.heroEvents.map((_, dot) => (
                     <span
                       key={dot}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        dot === active ? 'w-6 bg-accent-cyan' : 'w-1.5 bg-white/40'
+                      className={`h-1 rounded-full transition-all duration-300 ${
+                        dot === active ? 'w-5 bg-white' : 'w-1.5 bg-white/35'
                       }`}
                     />
                   ))}
@@ -108,33 +92,25 @@ function MobileEventScroll() {
   );
 }
 
-function DesktopEventFan() {
+function DesktopEventStrip() {
   return (
-    <div className="mt-12 hidden md:block">
-      <p className="mb-5 text-sm font-black text-muted sm:text-base">
+    <div className="mt-10 hidden md:block">
+      <p className="mb-4 text-center text-sm font-bold text-foreground sm:text-base">
         {fa.home.heroEventsLabel}
       </p>
 
-      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-3 sm:flex-nowrap sm:gap-0">
+      <div className="grid grid-cols-4 gap-2 overflow-hidden rounded-2xl sm:gap-3">
         {fa.home.heroEvents.map((ev, i) => (
-          <figure
-            key={ev.caption}
-            className={`group relative w-[42%] min-w-[9.5rem] cursor-default rounded-2xl bg-white p-2 pb-3 shadow-xl shadow-primary/15 ring-1 ring-border/60 transition-all duration-300 hover:z-20 hover:-translate-y-2 hover:rotate-0 hover:scale-105 hover:shadow-2xl sm:w-56 sm:-ms-4 sm:first:ms-0 ${CARD_POSES[i]}`}
-          >
-            <div className="relative overflow-hidden rounded-xl">
-              <img
-                src={PHOTOS[i]}
-                alt={ev.caption}
-                loading="lazy"
-                className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <span className="absolute top-2 start-2 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">
-                {fa.home.heldBadge}
-              </span>
-            </div>
-            <figcaption className="mt-2 flex items-center justify-center gap-1.5 text-xs font-black text-foreground sm:text-sm">
-              <span className="text-base">{ev.emoji}</span>
-              {ev.caption}
+          <figure key={ev.caption} className="group relative overflow-hidden">
+            <img
+              src={PHOTOS[i]}
+              alt={ev.caption}
+              loading="lazy"
+              className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+            />
+            <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary-dark/90 to-transparent px-3 pb-3 pt-10">
+              <span className="block text-[10px] font-bold text-white/65">{fa.home.heldBadge}</span>
+              <span className="mt-0.5 block text-sm font-bold text-white">{ev.caption}</span>
             </figcaption>
           </figure>
         ))}
@@ -147,7 +123,7 @@ export function HeroEventFan() {
   return (
     <>
       <MobileEventScroll />
-      <DesktopEventFan />
+      <DesktopEventStrip />
     </>
   );
 }
