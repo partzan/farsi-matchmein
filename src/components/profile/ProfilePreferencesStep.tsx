@@ -85,20 +85,25 @@ export function ProfilePreferencesStep({
 
       {/* Event age range */}
       <section className="rounded-2xl border border-border bg-background/60 p-4 sm:p-5">
-        <h3 className="text-base font-black text-foreground">
-          {fa.profileSetup.eventAgeRange}{' '}
-          <span className="text-accent-red">*</span>
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-muted">{fa.profileSetup.eventAgeHint}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-lg shadow-sm">
+            👥
+          </span>
+          <h3 className="flex-1 text-base font-black text-foreground">
+            {fa.profileSetup.eventAgeRange}{' '}
+            <span className="text-accent-red">*</span>
+          </h3>
+          {userAge != null && (
+            <span className="rounded-full bg-primary-light px-2.5 py-1 text-[11px] font-black text-primary">
+              {fa.profileSetup.eventAgeYourAge.replace(
+                '{age}',
+                userAge.toLocaleString('fa-IR'),
+              )}
+            </span>
+          )}
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{fa.profileSetup.eventAgeHint}</p>
         <p className="mt-1.5 text-xs font-semibold text-accent-orange">{fa.profileSetup.eventAgeNote}</p>
-        {userAge != null && (
-          <p className="mt-2 text-xs font-bold text-primary">
-            {fa.profileSetup.eventAgeYourAge.replace(
-              '{age}',
-              userAge.toLocaleString('fa-IR'),
-            )}
-          </p>
-        )}
         <div className="mt-5">
           {!bounds ? (
             <p className="rounded-xl border border-dashed border-border bg-white px-4 py-6 text-center text-sm font-bold text-muted">
@@ -122,11 +127,16 @@ export function ProfilePreferencesStep({
 
       {/* Introversion range */}
       <section className="rounded-2xl border border-border bg-background/60 p-4 sm:p-5">
-        <h3 className="text-base font-black text-foreground">
-          {fa.profileSetup.introversionRange}{' '}
-          <span className="text-accent-red">*</span>
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-muted">{fa.profileSetup.introversionHint}</p>
+        <div className="flex items-center gap-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-lg shadow-sm">
+            🔋
+          </span>
+          <h3 className="text-base font-black text-foreground">
+            {fa.profileSetup.introversionRange}{' '}
+            <span className="text-accent-red">*</span>
+          </h3>
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{fa.profileSetup.introversionHint}</p>
         <div className="mt-5">
           <RangeSlider
             min={1}
@@ -134,21 +144,34 @@ export function ProfilePreferencesStep({
             step={1}
             value={introversion}
             onChange={onIntroversionChange}
-            minLabel={fa.profileSetup.introversionMarks['1']}
-            maxLabel={fa.profileSetup.introversionMarks['10']}
-            formatValue={introLabel}
+            minLabel={fa.profileSetup.introShortLow}
+            maxLabel={fa.profileSetup.introShortHigh}
+            formatValue={(n) => n.toLocaleString('fa-IR')}
             aria-label={fa.profileSetup.introversionRange}
           />
         </div>
-        <ul className="mt-4 space-y-1.5 text-xs text-muted">
-          {INTRO_HINTS.map((n) => (
-            <li key={n} className="flex items-start gap-2">
-              <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-primary-light text-[10px] font-black text-primary">
-                {n}
-              </span>
-              <span>{introLabel(n)}</span>
-            </li>
-          ))}
+        <p className="mt-4 text-[11px] font-bold text-muted">{fa.profileSetup.introLegendHint}</p>
+        <ul className="mt-2 space-y-1 text-xs">
+          {INTRO_HINTS.map((n) => {
+            const inRange = n >= introversion[0] && n <= introversion[1];
+            return (
+              <li
+                key={n}
+                className={`flex items-start gap-2 rounded-lg px-2 py-1.5 transition-colors ${
+                  inRange ? 'bg-primary-light/60 font-bold text-foreground' : 'text-muted'
+                }`}
+              >
+                <span
+                  className={`mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-md text-[10px] font-black ${
+                    inRange ? 'bg-primary text-white' : 'bg-border/60 text-muted'
+                  }`}
+                >
+                  {n.toLocaleString('fa-IR')}
+                </span>
+                <span>{introLabel(n)}</span>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -172,6 +195,9 @@ export function ProfilePreferencesStep({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
+              <span className="text-lg" aria-hidden>
+                💬
+              </span>
               <h3 className="text-base font-black text-foreground">
                 {fa.profileSetup.personalityTitle}{' '}
                 <span className="text-accent-red">*</span>

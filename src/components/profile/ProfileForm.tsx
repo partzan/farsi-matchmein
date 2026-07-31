@@ -33,6 +33,45 @@ const MARITAL_OPTIONS: MaritalStatus[] = ['single', 'married'];
 const DEFAULT_EVENT_AGE: [number, number] = [22, 40];
 const DEFAULT_INTROVERSION: [number, number] = [3, 7];
 
+function SectionCard({
+  emoji,
+  title,
+  status,
+  children,
+}: {
+  emoji: string;
+  title: string;
+  status: 'done' | 'required' | 'optional';
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-background/60 p-4 sm:p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-lg shadow-sm">
+          {emoji}
+        </span>
+        <h3 className="flex-1 text-base font-black text-foreground">{title}</h3>
+        {status === 'done' && (
+          <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-black text-emerald-700">
+            ✓ {fa.profileSetup.sectionDone}
+          </span>
+        )}
+        {status === 'required' && (
+          <span className="rounded-full bg-accent-red/10 px-2.5 py-1 text-[11px] font-black text-accent-red">
+            {fa.profileSetup.sectionRequired}
+          </span>
+        )}
+        {status === 'optional' && (
+          <span className="rounded-full bg-border/60 px-2.5 py-1 text-[11px] font-bold text-muted">
+            {fa.common.optional}
+          </span>
+        )}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
 function StepCounter({
   current,
   required,
@@ -453,6 +492,17 @@ export function ProfileForm({ mode }: ProfileFormProps) {
               label={fa.profileSetup.interestsLabel}
             />
           )}
+          {step === 3 && (
+            <StepCounter
+              current={
+                (ageBounds ? 1 : 0) +
+                (introversion[0] <= introversion[1] ? 1 : 0) +
+                (personalityComplete(personality) ? 1 : 0)
+              }
+              required={3}
+              label={fa.profileSetup.stepPrefs}
+            />
+          )}
         </div>
 
         <FunStepper
@@ -502,43 +552,49 @@ export function ProfileForm({ mode }: ProfileFormProps) {
 
           {step === 1 && (
             <div className="space-y-5">
-              <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="group relative shrink-0 rounded-full bg-gradient-to-br from-primary via-accent-purple to-accent-orange p-1 shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95"
-                >
-                  <span className="relative block h-28 w-28 overflow-hidden rounded-full border-4 border-white">
-                    <img
-                      src={avatarUrl || getAvatarUrl('', 'default')}
-                      alt=""
-                      className={`h-full w-full object-cover ${uploadingAvatar ? 'opacity-50' : ''}`}
-                    />
-                    <span className="absolute inset-x-0 bottom-0 bg-black/50 py-1 text-center text-[10px] font-bold text-white">
-                      {fa.profile.uploadPhoto}
+              <SectionCard
+                emoji="👤"
+                title={fa.profileSetup.sec1Basic}
+                status={
+                  avatarUrl && firstName.trim() && lastName.trim() ? 'done' : 'required'
+                }
+              >
+                <div className="flex flex-col items-center gap-5 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="group relative shrink-0 rounded-full bg-gradient-to-br from-primary via-accent-purple to-accent-orange p-1 shadow-lg shadow-primary/20 transition-transform hover:scale-105 active:scale-95"
+                  >
+                    <span className="relative block h-28 w-28 overflow-hidden rounded-full border-4 border-white">
+                      <img
+                        src={avatarUrl || getAvatarUrl('', 'default')}
+                        alt=""
+                        className={`h-full w-full object-cover ${uploadingAvatar ? 'opacity-50' : ''}`}
+                      />
+                      <span className="absolute inset-x-0 bottom-0 bg-black/50 py-1 text-center text-[10px] font-bold text-white">
+                        {fa.profile.uploadPhoto}
+                      </span>
                     </span>
-                  </span>
-                  <span className="absolute -bottom-1 -end-1 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow-md transition-transform group-hover:rotate-12">
-                    📸
-                  </span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                </button>
+                    <span className="absolute -bottom-1 -end-1 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow-md transition-transform group-hover:rotate-12">
+                      📸
+                    </span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </button>
 
-                <div className="w-full flex-1 space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid w-full flex-1 gap-4 sm:grid-cols-2">
                     <div>
                       <label className="mb-1.5 block text-sm font-bold">{fa.profileSetup.firstName}</label>
                       <input
                         type="text"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full rounded-xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                     <div>
@@ -547,11 +603,58 @@ export function ProfileForm({ mode }: ProfileFormProps) {
                         type="text"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full rounded-xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
                   </div>
+                </div>
+              </SectionCard>
 
+              <SectionCard
+                emoji="🎂"
+                title={fa.profileSetup.sec1Birth}
+                status={birthDate && maritalStatus ? 'done' : 'required'}
+              >
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-bold">
+                      {fa.profileSetup.maritalStatus}{' '}
+                      <span className="text-accent-red">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {MARITAL_OPTIONS.map((opt) => {
+                        const selected = maritalStatus === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setMaritalStatus(opt)}
+                            className={`flex items-center justify-center gap-2 rounded-2xl border-2 px-4 py-3.5 text-base font-black transition-all active:scale-95 ${
+                              selected
+                                ? 'border-primary bg-primary text-white shadow-md shadow-primary/25'
+                                : 'border-border bg-white text-foreground hover:border-primary'
+                            }`}
+                          >
+                            <span className="text-xl" aria-hidden>
+                              {opt === 'single' ? '🧍' : '💍'}
+                            </span>
+                            {fa.profileSetup.maritalOptions[opt]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <BirthDatePicker value={birthDate} onChange={setBirthDate} />
+                </div>
+              </SectionCard>
+
+              <SectionCard
+                emoji="📞"
+                title={fa.profileSetup.sec1Contact}
+                status={phoneVerified && phone.trim().length >= 10 ? 'done' : 'optional'}
+              >
+                <div className="space-y-4">
                   <PhoneOtpField
                     phone={phone}
                     verified={phoneVerified}
@@ -561,34 +664,6 @@ export function ProfileForm({ mode }: ProfileFormProps) {
                     }}
                     onClearVerified={() => setPhoneVerified(false)}
                   />
-
-                  <BirthDatePicker value={birthDate} onChange={setBirthDate} />
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-bold">
-                      {fa.profileSetup.maritalStatus}{' '}
-                      <span className="text-accent-red">*</span>
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {MARITAL_OPTIONS.map((opt) => {
-                        const selected = maritalStatus === opt;
-                        return (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => setMaritalStatus(opt)}
-                            className={`rounded-full px-3.5 py-2 text-sm font-bold transition-all ${
-                              selected
-                                ? 'bg-primary text-white shadow-md shadow-primary/25'
-                                : 'border border-border bg-background text-foreground hover:border-primary'
-                            }`}
-                          >
-                            {fa.profileSetup.maritalOptions[opt]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
 
                   <div>
                     <label className="mb-1.5 block text-sm font-bold">
@@ -600,12 +675,12 @@ export function ProfileForm({ mode }: ProfileFormProps) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@example.com"
-                      className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded-xl border border-border bg-white px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
                       dir="ltr"
                     />
                   </div>
                 </div>
-              </div>
+              </SectionCard>
             </div>
           )}
 
