@@ -358,12 +358,12 @@ button, a, input[type="button"], input[type="submit"] {
 .marquee-track {
   display: flex;
   width: max-content;
-  gap: 0.75rem;
-  animation: marquee-scroll 36s linear infinite;
+  gap: 0.65rem;
+  animation: marquee-scroll 48s linear infinite;
 }
 .marquee-track--reverse {
   animation-direction: reverse;
-  animation-duration: 44s;
+  animation-duration: 56s;
 }
 .marquee:hover .marquee-track {
   animation-play-state: paused;

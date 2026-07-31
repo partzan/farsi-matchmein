@@ -15,32 +15,32 @@ export function Home() {
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="mb-4 text-sm font-bold tracking-wide text-primary/80 sm:text-base">
+            <p className="mb-3 text-[0.8rem] font-semibold tracking-[0.04em] text-muted sm:text-sm">
               <span className="text-foreground">{fa.brand}</span>
-              <span className="mx-2 text-border">|</span>
-              <span className="font-semibold text-muted">{fa.brandEn}</span>
+              <span className="mx-2 text-border">·</span>
+              <span>{fa.brandEn}</span>
             </p>
 
-            <p className="mb-5 text-xs font-semibold text-muted sm:text-sm">{fa.home.badge}</p>
+            <p className="mb-6 text-xs font-medium text-primary/70 sm:text-sm">{fa.home.badge}</p>
 
-            <h1 className="text-3xl font-black leading-[1.35] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            <h1 className="text-[1.7rem] font-bold leading-[1.45] tracking-tight text-foreground sm:text-4xl lg:text-[2.75rem] lg:leading-[1.4]">
               {fa.home.heroTitle}
             </h1>
 
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted sm:whitespace-nowrap sm:text-base md:text-lg">
               {fa.home.heroSubtitle}
             </p>
 
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
                 to="/profile-setup"
-                className="inline-flex min-w-[12rem] items-center justify-center rounded-xl bg-primary px-8 py-3.5 text-base font-bold text-white transition hover:bg-primary-dark"
+                className="inline-flex min-w-[11.5rem] items-center justify-center rounded-xl bg-primary px-8 py-3.5 text-sm font-bold text-white transition hover:bg-primary-dark sm:text-base"
               >
                 {fa.home.ctaSecondary}
               </Link>
               <Link
                 to="/events"
-                className="inline-flex min-w-[12rem] items-center justify-center rounded-xl border border-border bg-white px-8 py-3.5 text-base font-bold text-foreground transition hover:border-primary hover:text-primary"
+                className="inline-flex min-w-[11.5rem] items-center justify-center rounded-xl border border-border/90 bg-white/80 px-8 py-3.5 text-sm font-semibold text-foreground backdrop-blur-sm transition hover:border-primary/40 hover:text-primary sm:text-base"
               >
                 {fa.home.cta}
               </Link>
