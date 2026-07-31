@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Minus, Plus } from 'lucide-react';
 import { RangeSlider } from './RangeSlider';
 import {
   PERSONALITY_QUESTIONS,
@@ -54,6 +55,8 @@ export function ProfilePreferencesStep({
   personality,
   onPersonalityChange,
 }: ProfilePreferencesStepProps) {
+  const [personalityOpen, setPersonalityOpen] = useState(false);
+
   const introLabel = (n: number) => {
     const map = fa.profileSetup.introversionMarks as Record<string, string>;
     return map[String(n)] || String(n);
@@ -149,76 +152,101 @@ export function ProfilePreferencesStep({
         </ul>
       </section>
 
-      {/* Personality questions */}
-      <section className="space-y-4">
-        <div className="rounded-2xl border border-border bg-gradient-to-l from-primary-light/50 to-white p-4 sm:p-5">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div>
+      {/* Personality questions — collapsed by default */}
+      <section className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setPersonalityOpen((o) => !o)}
+          aria-expanded={personalityOpen}
+          className="flex w-full items-start gap-3 p-4 text-start transition hover:bg-primary-light/30 sm:p-5"
+        >
+          <span
+            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
+              personalityOpen
+                ? 'border-primary bg-primary text-white'
+                : 'border-border bg-background text-primary'
+            }`}
+            aria-hidden
+          >
+            {personalityOpen ? <Minus className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base font-black text-foreground">
                 {fa.profileSetup.personalityTitle}{' '}
                 <span className="text-accent-red">*</span>
               </h3>
-              <p className="mt-1 text-sm text-muted">{fa.profileSetup.personalityHint}</p>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-[11px] font-black ${
+                  personalityComplete(personality)
+                    ? 'bg-emerald-500/15 text-emerald-700'
+                    : 'bg-primary-light text-primary'
+                }`}
+              >
+                {fa.profileSetup.personalityProgress
+                  .replace('{done}', answered.toLocaleString('fa-IR'))
+                  .replace('{total}', total.toLocaleString('fa-IR'))}
+              </span>
             </div>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-black ${
-                personalityComplete(personality)
-                  ? 'bg-emerald-500/15 text-emerald-700'
-                  : 'bg-primary-light text-primary'
-              }`}
-            >
-              {fa.profileSetup.personalityProgress
-                .replace('{done}', answered.toLocaleString('fa-IR'))
-                .replace('{total}', total.toLocaleString('fa-IR'))}
-            </span>
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              {fa.profileSetup.personalityHint}
+            </p>
           </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-border">
-            <div
-              className="h-full rounded-full bg-gradient-to-l from-primary to-accent-purple transition-all duration-500"
-              style={{ width: `${(answered / total) * 100}%` }}
-            />
-          </div>
-        </div>
+        </button>
 
-        {PERSONALITY_QUESTIONS.map((q, idx) => {
-          const selected = personality[q.id];
-          return (
-            <article
-              key={q.id}
-              className={`rounded-2xl border p-4 transition-colors sm:p-5 ${
-                selected
-                  ? 'border-primary/30 bg-primary-light/20'
-                  : 'border-border bg-white'
-              }`}
-            >
-              <p className="text-sm font-black leading-relaxed text-foreground sm:text-base">
-                <span className="me-2 inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-primary text-[11px] font-black text-white">
-                  {(idx + 1).toLocaleString('fa-IR')}
-                </span>
-                {labels[q.id]}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {q.options.map((opt) => {
-                  const active = selected === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setAnswer(q.id, opt.id)}
-                      className={`rounded-full px-3.5 py-2 text-sm font-bold transition-all active:scale-95 ${
-                        active
-                          ? 'bg-primary text-white shadow-md shadow-primary/25'
-                          : 'border border-border bg-background text-foreground hover:border-primary hover:bg-primary-light/50'
-                      }`}
-                    >
-                      {labels[opt.labelKey]}
-                    </button>
-                  );
-                })}
-              </div>
-            </article>
-          );
-        })}
+        {personalityOpen && (
+          <div className="space-y-4 border-t border-border bg-background/40 p-4 sm:p-5">
+            <p className="text-sm font-bold text-foreground">
+              {fa.profileSetup.personalityOpenHint}
+            </p>
+            <div className="h-2 overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full rounded-full bg-gradient-to-l from-primary to-accent-purple transition-all duration-500"
+                style={{ width: `${(answered / total) * 100}%` }}
+              />
+            </div>
+
+            {PERSONALITY_QUESTIONS.map((q, idx) => {
+              const selected = personality[q.id];
+              return (
+                <article
+                  key={q.id}
+                  className={`rounded-2xl border p-4 transition-colors sm:p-5 ${
+                    selected
+                      ? 'border-primary/30 bg-primary-light/20'
+                      : 'border-border bg-white'
+                  }`}
+                >
+                  <p className="text-sm font-black leading-relaxed text-foreground sm:text-base">
+                    <span className="me-2 inline-flex h-6 min-w-6 items-center justify-center rounded-lg bg-primary text-[11px] font-black text-white">
+                      {(idx + 1).toLocaleString('fa-IR')}
+                    </span>
+                    {labels[q.id]}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {q.options.map((opt) => {
+                      const active = selected === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setAnswer(q.id, opt.id)}
+                          className={`rounded-full px-3.5 py-2 text-sm font-bold transition-all active:scale-95 ${
+                            active
+                              ? 'bg-primary text-white shadow-md shadow-primary/25'
+                              : 'border border-border bg-background text-foreground hover:border-primary hover:bg-primary-light/50'
+                          }`}
+                        >
+                          {labels[opt.labelKey]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
       </section>
     </div>
   );

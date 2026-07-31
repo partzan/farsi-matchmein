@@ -213,9 +213,13 @@ export const fa = {
     ageOlder: 'مسن‌تر',
     years: 'سال',
     prefsIncomplete: 'بازه سنی، درون‌گرایی و سوال‌های شخصیتی را کامل کن.',
-    personalityTitle: 'چند سوال کوتاه درباره خودت',
-    personalityHint: 'جواب‌هات کمک می‌کنه جمع و ایونت مناسب‌تری پیدا بشه.',
+    personalityTitle: 'سوالات کوتاه',
+    personalityHint:
+      'توضیحات (به چند سوال کوتاه جواب بده تا جمع‌های مناسب‌تری برای شما پیدا کنیم)',
+    personalityOpenHint: 'جواب‌هات کمک می‌کنه جمع و ایونت مناسب‌تری پیدا بشه.',
     personalityProgress: '{done} از {total} سوال',
+    personalityExpand: 'باز کردن سوالات',
+    personalityCollapse: 'بستن سوالات',
     personality: {
       free_time: 'وقتی وقت آزاد داری، معمولاً دوست داری چیکار کنی؟',
       decision_style: 'وقتی می‌خوای یه تصمیم مهم بگیری، بیشتر به چی تکیه می‌کنی؟',
