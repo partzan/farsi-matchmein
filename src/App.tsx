@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
+import { ScrollToTop } from './components/ScrollToTop';
 import { Home } from './pages/Home';
 import { Events } from './pages/Events';
 import { Archive } from './pages/Archive';
@@ -27,6 +28,7 @@ function AppShell() {
         isAuthPage ? 'h-dvh overflow-hidden' : 'min-h-screen'
       }`}
     >
+      <ScrollToTop />
       <Navbar />
       <main className={`flex-1 ${isAuthPage ? 'min-h-0 overflow-hidden' : ''}`}>
         <Routes>
