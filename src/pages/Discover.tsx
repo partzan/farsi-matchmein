@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { VoteCounterRail } from '../components/VoteCounterRail';
 import { useVoteTokens } from '../hooks/useVoteTokens';
+import { VOTING_ENABLED } from '../lib/features';
 import { signInWithGoogle } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { fa } from '../locale/fa';
@@ -24,7 +25,10 @@ type GenderFilter = 'all' | 'everyone' | 'female_only' | 'male_only';
 const PAGE_SIZE = 9;
 
 export function Discover() {
-  const { remaining, max, refresh } = useVoteTokens();
+  const voteTokens = useVoteTokens();
+  const remaining = VOTING_ENABLED ? voteTokens.remaining : null;
+  const max = voteTokens.max;
+  const refresh = voteTokens.refresh;
   const [events, setEvents] = useState<BrowseEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -55,8 +59,7 @@ export function Discover() {
 
       let rows = (data as unknown as BrowseEvent[]) || [];
 
-      // If no published upcoming, show voting as suggestions so the page isn't empty
-      if (rows.length === 0) {
+      if (VOTING_ENABLED && rows.length === 0) {
         const { data: voting } = await supabase
           .from('events')
           .select(`
@@ -98,7 +101,7 @@ export function Discover() {
       }
 
       setLoading(false);
-      refresh();
+      if (VOTING_ENABLED) refresh();
     }
     load();
   }, [refresh]);
@@ -127,9 +130,9 @@ export function Discover() {
 
   return (
     <div className="relative min-h-[60vh]" dir="rtl">
-      <VoteCounterRail remaining={remaining} max={max} />
+      {VOTING_ENABLED && <VoteCounterRail remaining={remaining} max={max} />}
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:ps-28">
+      <div className={`mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 ${VOTING_ENABLED ? 'lg:ps-28' : ''}`}>
         <header className="mb-6">
           <h1 className="text-2xl font-black text-foreground sm:text-3xl">{fa.discover.title}</h1>
           <p className="mt-1 text-sm text-muted">{fa.discover.subtitle}</p>
@@ -195,7 +198,7 @@ export function Discover() {
               to="/events"
               className="mt-5 inline-flex rounded-full bg-gradient-to-l from-primary to-accent-purple px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-xl"
             >
-              {fa.discover.emptyVoteCta}
+              {fa.discover.emptyBrowseCta}
             </Link>
           </div>
         ) : (
@@ -295,7 +298,7 @@ export function Discover() {
                     to="/events"
                     className="shrink-0 rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary hover:bg-primary hover:text-white"
                   >
-                    {fa.events.vote}
+                    {VOTING_ENABLED ? fa.events.vote : fa.events.viewDetails}
                   </Link>
                 </li>
               ))}

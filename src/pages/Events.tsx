@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { canAccessAdmin } from '../lib/admin';
+import { VOTING_ENABLED } from '../lib/features';
 import { supabase } from '../lib/supabase';
 import { getCategoryColor } from '../lib/colors';
 import { VoteCounterRail } from '../components/VoteCounterRail';
@@ -55,50 +56,65 @@ export function Events() {
       setUser(session?.user ?? null);
       setUserEmail(session?.user?.email ?? null);
 
-      // Voting events are public — guests can browse before signing up
-      const { data: vEvents } = await supabase
-        .from('events')
-        .select(`
-          id, title, pitch, description, datetime, max_attendees, image_url, icon, status, gender_restriction,
-          category:interest_categories(id, name),
-          host:users!events_host_id_fkey(display_name, is_verified),
-          event_votes(count)
-        `)
-        .eq('status', 'voting')
-        .order('created_at', { ascending: false });
+      if (VOTING_ENABLED) {
+        const { data: vEvents } = await supabase
+          .from('events')
+          .select(`
+            id, title, pitch, description, datetime, max_attendees, image_url, icon, status, gender_restriction,
+            category:interest_categories(id, name),
+            host:users!events_host_id_fkey(display_name, is_verified),
+            event_votes(count)
+          `)
+          .eq('status', 'voting')
+          .order('created_at', { ascending: false });
 
-      if (vEvents) {
-        setVotingEvents(vEvents as unknown as Event[]);
+        if (vEvents) {
+          setVotingEvents(vEvents as unknown as Event[]);
+        }
+      } else {
+        setVotingEvents([]);
       }
 
-      if (!session) {
+      if (!session && VOTING_ENABLED) {
         setLoading(false);
         return;
       }
 
       let preferredSlots: string[] = [];
-      const { data: profile } = await supabase
-        .from('users')
-        .select('preferred_time_slots, rank, vote_tokens, gender')
-        .eq('id', session.user.id)
-        .single();
-      if (profile?.preferred_time_slots) {
-        preferredSlots = profile.preferred_time_slots;
-      }
-      if (profile?.rank) {
-        setUserRank(profile.rank);
-      }
-      if (profile?.vote_tokens !== undefined) {
-        setVoteTokens(profile.vote_tokens);
-      }
+      let profileGender: string | null = null;
+      if (session) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select(
+            VOTING_ENABLED
+              ? 'preferred_time_slots, rank, vote_tokens, gender'
+              : 'preferred_time_slots, rank, gender',
+          )
+          .eq('id', session.user.id)
+          .single();
+        if (profile?.preferred_time_slots) {
+          preferredSlots = profile.preferred_time_slots;
+        }
+        if (profile?.rank) {
+          setUserRank(profile.rank);
+        }
+        profileGender = profile?.gender ?? null;
+        if (VOTING_ENABLED && profile?.vote_tokens !== undefined) {
+          setVoteTokens(profile.vote_tokens);
+        }
 
-      const { data: myVotes } = await supabase
-        .from('event_votes')
-        .select('event_id')
-        .eq('user_id', session.user.id);
-        
-      if (myVotes) {
-        setUserVotes(new Set(myVotes.map(v => v.event_id)));
+        if (VOTING_ENABLED) {
+          const { data: myVotes } = await supabase
+            .from('event_votes')
+            .select('event_id')
+            .eq('user_id', session.user.id);
+
+          if (myVotes) {
+            setUserVotes(new Set(myVotes.map((v) => v.event_id)));
+          }
+        } else {
+          setUserVotes(new Set());
+        }
       }
 
       const { data, error } = await supabase
@@ -132,9 +148,9 @@ export function Events() {
         };
 
         let processedEvents = (data as any[])
-          .filter(e => !e.gender_restriction || e.gender_restriction === 'everyone' || e.gender_restriction === profile?.gender + '_only')
+          .filter(e => !e.gender_restriction || e.gender_restriction === 'everyone' || (profileGender && e.gender_restriction === profileGender + '_only'))
           .map(e => {
-            const myMatches = Array.isArray(e.event_matches)
+            const myMatches = session && Array.isArray(e.event_matches)
               ? e.event_matches.filter(
                   (m: any) => m.user_id === session.user.id && m.is_active,
                 )
@@ -264,19 +280,27 @@ export function Events() {
   return (
     <div className="relative min-h-[60vh]" dir="rtl">
       <SignupModal open={showSignup} onClose={() => setShowSignup(false)} />
-      <VoteCounterRail remaining={user ? voteTokens : null} />
+      {VOTING_ENABLED && <VoteCounterRail remaining={user ? voteTokens : null} />}
       {/* Keep stackRef for flying-ticket animation origin */}
       <div ref={stackRef} className="pointer-events-none fixed left-4 top-1/2 -z-10 h-1 w-1 opacity-0" aria-hidden />
 
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:ps-28">
-      <div id="voting-stage" className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 text-center scroll-mt-24">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{fa.events.title}</h1>
+      <div className={`mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 ${VOTING_ENABLED ? 'lg:ps-28' : ''}`}>
+      <div id="events-hero" className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 text-center scroll-mt-24">
+        <h1 className="text-3xl font-extrabold text-gray-900 mb-4">
+          {VOTING_ENABLED ? fa.events.title : fa.events.upcoming}
+        </h1>
         <p className="text-gray-500 max-w-2xl mx-auto">
-          {user ? fa.events.subtitleUser : fa.events.subtitleGuest}
+          {VOTING_ENABLED
+            ? user
+              ? fa.events.subtitleUser
+              : fa.events.subtitleGuest
+            : user
+              ? fa.events.browseSubtitleUser
+              : fa.events.browseSubtitleGuest}
         </p>
       </div>
 
-      {!loading && votingEvents.length > 0 && (
+      {VOTING_ENABLED && !loading && votingEvents.length > 0 && (
         <div className="mb-12">
           <div className="flex justify-between items-end mb-6">
             <div>
@@ -311,7 +335,7 @@ export function Events() {
         </div>
       )}
 
-      {!loading && votingEvents.length === 0 && (
+      {VOTING_ENABLED && !loading && votingEvents.length === 0 && (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100 mb-12">
           <p className="text-gray-500 font-medium text-lg">{fa.events.noVoting}</p>
           <p className="text-gray-400 mt-2">{fa.events.checkBack}</p>
@@ -319,7 +343,7 @@ export function Events() {
       )}
 
       {/* Render flying tickets */}
-      {flyingTickets.map(ticket => (
+      {VOTING_ENABLED && flyingTickets.map(ticket => (
         <div
           key={ticket.id}
           className="fixed z-[100] pointer-events-none flex items-center justify-center transition-all ease-in-out"
@@ -339,9 +363,11 @@ export function Events() {
         </div>
       ))}
 
-      {user && (
+      {(user || !VOTING_ENABLED) && (
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{fa.events.upcoming}</h2>
+        {VOTING_ENABLED && (
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">{fa.events.upcoming}</h2>
+        )}
         
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -363,12 +389,14 @@ export function Events() {
         ) : events.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
             <p className="text-gray-500 font-medium text-lg">{fa.events.noUpcoming}</p>
-            <a
-              href="#voting-stage"
-              className="mt-5 inline-flex rounded-full bg-gradient-to-l from-primary to-accent-purple px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
-            >
-              {fa.events.noUpcomingVoteCta}
-            </a>
+            {VOTING_ENABLED ? (
+              <a
+                href="#events-hero"
+                className="mt-5 inline-flex rounded-full bg-gradient-to-l from-primary to-accent-purple px-6 py-3 text-sm font-black text-white shadow-lg shadow-primary/20 transition hover:-translate-y-0.5"
+              >
+                {fa.events.noUpcomingVoteCta}
+              </a>
+            ) : null}
             {canAccessAdmin(userEmail, userRank) && (
               <Link to="/admin/events" className="text-primary font-bold hover:underline mt-4 block">{fa.events.createFirst}</Link>
             )}

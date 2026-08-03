@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { FlipCard } from './FlipCard';
+import { VOTING_ENABLED } from '../lib/features';
 import { fa } from '../locale/fa';
 
 /** Local optimized assets (WebP + JPEG fallback) for platform flip cards */
-const CARD_PHOTOS = [
-  { webp: '/platform/vote.webp', jpg: '/platform/vote.jpg', alt: '' },
-  { webp: '/platform/privacy.webp', jpg: '/platform/privacy.jpg', alt: '' },
-  { webp: '/platform/notify.webp', jpg: '/platform/notify.jpg', alt: '' },
-  { webp: '/platform/rewards.webp', jpg: '/platform/rewards.jpg', alt: '' },
-];
+const CARD_PHOTOS: Record<string, { webp: string; jpg: string; alt: string }> = {
+  voteDemand: { webp: '/platform/vote.webp', jpg: '/platform/vote.jpg', alt: '' },
+  privacyPay: { webp: '/platform/privacy.webp', jpg: '/platform/privacy.jpg', alt: '' },
+  notifyMatch: { webp: '/platform/notify.webp', jpg: '/platform/notify.jpg', alt: '' },
+  rewardsAi: { webp: '/platform/rewards.webp', jpg: '/platform/rewards.jpg', alt: '' },
+};
 
 const BACK_COLORS = [
   { bg: '#F3E8FF', accent: '#C026D3', soft: '#6D28D9' },
@@ -62,7 +63,9 @@ function VectorBackdrop({ variant }: { variant: number }) {
 
 export function PlatformInfoTiles() {
   const [flippedKey, setFlippedKey] = useState<string | null>(null);
-  const cards = fa.platform.cards;
+  const cards = fa.platform.cards.filter(
+    (c) => VOTING_ENABLED || c.key !== 'voteDemand',
+  );
 
   return (
     <section className="relative -mt-2 overflow-hidden py-12 sm:py-16">
@@ -80,10 +83,11 @@ export function PlatformInfoTiles() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-7">
+        <div className={`grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 ${cards.length >= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} lg:gap-7`}>
           {cards.map((item, i) => {
             const isFlipped = flippedKey === item.key;
-            const back = BACK_COLORS[i];
+            const back = BACK_COLORS[i % BACK_COLORS.length];
+            const photo = CARD_PHOTOS[item.key] ?? CARD_PHOTOS.privacyPay;
 
             return (
               <FlipCard
@@ -99,10 +103,10 @@ export function PlatformInfoTiles() {
                 frontChild={
                   <div className="relative flex h-full w-full flex-col justify-end overflow-hidden rounded-3xl border border-white/20 shadow-xl shadow-primary/15">
                     <picture>
-                      <source srcSet={CARD_PHOTOS[i].webp} type="image/webp" />
+                      <source srcSet={photo.webp} type="image/webp" />
                       <img
-                        src={CARD_PHOTOS[i].jpg}
-                        alt={CARD_PHOTOS[i].alt}
+                        src={photo.jpg}
+                        alt={photo.alt}
                         width={720}
                         height={900}
                         className="absolute inset-0 h-full w-full object-cover"

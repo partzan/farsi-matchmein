@@ -1,22 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check } from 'lucide-react';
+import { Check, MapPin } from 'lucide-react';
 import { canAccessAdmin, ensureAdministratorRank } from '../lib/admin';
 import {
   BROAD_INTERESTS,
   categoriesForNames,
+  canonicalCategoryName,
   type BroadInterest,
 } from '../lib/broadInterests';
-import { EVENT_ICONS } from '../lib/eventIcons';
+import { searchCities, type CityOption } from '../lib/cities';
+import { iconsForEventSelection } from '../lib/eventIcons';
+import { VOTING_ENABLED } from '../lib/features';
 import { supabase } from '../lib/supabase';
 import { categoryFa } from '../locale/categoriesFa';
 import { fa } from '../locale/fa';
+import { JalaliEventDatePicker } from '../components/JalaliEventDatePicker';
 
 type Category = { id: string; name: string; emoji?: string; group_name?: string };
 type EventCreateType = 'publish' | 'voting';
 
-const TOTAL_STEPS = 4;
-const RELATED_REQUIRED = 3;
+const TOTAL_STEPS = 5;
+const RELATED_MAX = 3;
+const DEFAULT_TIME = '18:00';
 
 export function CreateEvent() {
   const navigate = useNavigate();
@@ -26,15 +31,19 @@ export function CreateEvent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [eventType, setEventType] = useState<EventCreateType | ''>('');
   const [broadId, setBroadId] = useState('');
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [icon, setIcon] = useState<string>(EVENT_ICONS[0]);
+  const [icon, setIcon] = useState('');
   const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [location, setLocation] = useState('');
+  const [cityQuery, setCityQuery] = useState('');
+  const [city, setCity] = useState<CityOption | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [eventType, setEventType] = useState<EventCreateType>(
+    VOTING_ENABLED ? 'voting' : 'publish',
+  );
+  const cityBoxRef = useRef<HTMLDivElement>(null);
 
   const selectedBroad = useMemo(
     () => BROAD_INTERESTS.find((b) => b.id === broadId) ?? null,
@@ -45,6 +54,30 @@ export function CreateEvent() {
     if (!selectedBroad) return [] as Category[];
     return categoriesForNames(selectedBroad.specifics, categories as any);
   }, [selectedBroad, categories]);
+
+  const relatedNames = useMemo(
+    () =>
+      relatedIds
+        .map((id) => {
+          const cat = categories.find((c) => c.id === id);
+          return cat ? canonicalCategoryName(cat.name) : '';
+        })
+        .filter(Boolean),
+    [relatedIds, categories],
+  );
+
+  const availableIcons = useMemo(
+    () => iconsForEventSelection(broadId, relatedNames),
+    [broadId, relatedNames],
+  );
+
+  const cityResults = useMemo(() => searchCities(cityQuery), [cityQuery]);
+
+  useEffect(() => {
+    if (!icon || !availableIcons.includes(icon)) {
+      setIcon(availableIcons[0] || '');
+    }
+  }, [availableIcons, icon]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,37 +117,53 @@ export function CreateEvent() {
     };
   }, [navigate]);
 
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!cityBoxRef.current?.contains(e.target as Node)) setCityOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, []);
+
   const selectBroad = (id: string) => {
     setBroadId(id);
     setRelatedIds([]);
+    setIcon('');
   };
 
   const toggleRelated = (id: string) => {
     setRelatedIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= RELATED_REQUIRED) return prev;
+      if (prev.length >= RELATED_MAX) return prev;
       return [...prev, id];
     });
   };
 
+  const pickCity = (c: CityOption) => {
+    setCity(c);
+    setCityQuery(c.nameFa);
+    setCityOpen(false);
+  };
+
   const canNext =
-    (step === 1 && !!eventType) ||
-    (step === 2 && !!broadId && relatedIds.length === RELATED_REQUIRED) ||
-    (step === 3 && !!title.trim() && !!description.trim() && !!icon) ||
-    (step === 4 && !!date && !!time && !!location.trim());
+    (step === 1 && !!broadId) ||
+    (step === 2 && relatedIds.length >= 1) ||
+    (step === 3 && !!title.trim() && !!description.trim()) ||
+    (step === 4 && !!icon) ||
+    (step === 5 && !!date && !!city && !!eventType);
 
   const handleNext = () => {
     if (!canNext) {
       setError(
         step === 1
-          ? fa.createEvent.needType
+          ? fa.createEvent.needPrimary
           : step === 2
-            ? relatedIds.length !== RELATED_REQUIRED
-              ? fa.createEvent.errorExactly3
-              : fa.createEvent.needCategory
+            ? fa.createEvent.needRelated
             : step === 3
               ? fa.createEvent.needDetails
-              : fa.createEvent.needSchedule,
+              : step === 4
+                ? fa.createEvent.needIcon
+                : fa.createEvent.needSchedule,
       );
       return;
     }
@@ -123,12 +172,8 @@ export function CreateEvent() {
   };
 
   const handlePublish = async () => {
-    if (!canNext || !eventType) {
+    if (!canNext || !city) {
       setError(fa.createEvent.needSchedule);
-      return;
-    }
-    if (relatedIds.length !== RELATED_REQUIRED) {
-      setError(fa.createEvent.errorExactly3);
       return;
     }
     setError(null);
@@ -148,7 +193,8 @@ export function CreateEvent() {
         throw new Error(fa.createEvent.adminOnlyError);
       }
 
-      const status = eventType === 'voting' ? 'voting' : 'available';
+      const status =
+        VOTING_ENABLED && eventType === 'voting' ? 'voting' : 'available';
 
       const { data, error: insertError } = await supabase
         .from('events')
@@ -158,8 +204,8 @@ export function CreateEvent() {
           pitch: description.trim(),
           description: description.trim(),
           category_id: relatedIds[0],
-          location: location.trim(),
-          datetime: new Date(`${date}T${time}`).toISOString(),
+          location: city.nameFa,
+          datetime: new Date(`${date}T${DEFAULT_TIME}`).toISOString(),
           targeted_interest_ids: relatedIds,
           gender_restriction: 'everyone',
           icon,
@@ -230,106 +276,87 @@ export function CreateEvent() {
           </div>
         )}
 
+        {/* 1 — Primary category */}
         {step === 1 && (
-          <div className="space-y-4">
-            <section>
-              <h2 className="text-lg font-black text-foreground">
-                {fa.createEvent.chooseType}
-              </h2>
-              <p className="mt-1 text-sm text-muted">{fa.createEvent.typeHint}</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <TypeCard
-                  selected={eventType === 'publish'}
-                  title={fa.createEvent.typePublish}
-                  hint={fa.createEvent.typePublishHint}
-                  onSelect={() => setEventType('publish')}
-                />
-                <TypeCard
-                  selected={eventType === 'voting'}
-                  title={fa.createEvent.typeVoting}
-                  hint={fa.createEvent.typeVotingHint}
-                  onSelect={() => setEventType('voting')}
-                />
-              </div>
-            </section>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-8">
-            <section>
+          <section className="space-y-4">
+            <div>
               <h2 className="text-lg font-black text-foreground">
                 {fa.createEvent.choosePrimary}
               </h2>
               <p className="mt-1 text-sm text-muted">{fa.createEvent.primaryHint}</p>
-              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-                {BROAD_INTERESTS.map((opt) => (
-                  <BroadCard
-                    key={opt.id}
-                    opt={opt}
-                    selected={broadId === opt.id}
-                    onToggle={() => selectBroad(opt.id)}
-                  />
-                ))}
-              </div>
-            </section>
-
-            {selectedBroad && (
-              <section>
-                <div className="flex flex-wrap items-end justify-between gap-2">
-                  <div>
-                    <h2 className="text-lg font-black text-foreground">
-                      {fa.createEvent.chooseRelated}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted">
-                      {fa.createEvent.relatedHint.replace('{broad}', selectedBroad.label)}
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary">
-                    {fa.createEvent.relatedSelected.replace(
-                      '{count}',
-                      relatedIds.length.toLocaleString('fa-IR'),
-                    )}
-                  </span>
-                </div>
-                {relatedSpecifics.length === 0 ? (
-                  <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
-                    {fa.createEvent.noRelated}
-                  </p>
-                ) : (
-                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {relatedSpecifics.map((cat) => {
-                      const selected = relatedIds.includes(cat.id);
-                      const atLimit = relatedIds.length >= RELATED_REQUIRED && !selected;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => toggleRelated(cat.id)}
-                          disabled={atLimit}
-                          className={`rounded-xl px-3 py-3 text-sm font-bold transition ${
-                            selected
-                              ? `bg-gradient-to-l ${selectedBroad.gradient} text-white shadow-md`
-                              : atLimit
-                                ? 'border border-border bg-background text-muted opacity-50'
-                                : 'border border-border bg-background text-foreground hover:border-primary'
-                          }`}
-                        >
-                          {cat.emoji ? `${cat.emoji} ` : ''}
-                          {categoryFa(cat.name)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            )}
-          </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+              {BROAD_INTERESTS.map((opt) => (
+                <BroadCard
+                  key={opt.id}
+                  opt={opt}
+                  selected={broadId === opt.id}
+                  onToggle={() => selectBroad(opt.id)}
+                />
+              ))}
+            </div>
+          </section>
         )}
 
+        {/* 2 — Related interests */}
+        {step === 2 && selectedBroad && (
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-black text-foreground">
+                  {fa.createEvent.chooseRelated}
+                </h2>
+                <p className="mt-1 text-sm text-muted">
+                  {fa.createEvent.relatedHint.replace('{broad}', selectedBroad.label)}
+                </p>
+              </div>
+              <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary">
+                {fa.createEvent.relatedSelected.replace(
+                  '{count}',
+                  relatedIds.length.toLocaleString('fa-IR'),
+                )}
+              </span>
+            </div>
+            {relatedSpecifics.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                {fa.createEvent.noRelated}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {relatedSpecifics.map((cat) => {
+                  const selected = relatedIds.includes(cat.id);
+                  const atLimit = relatedIds.length >= RELATED_MAX && !selected;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => toggleRelated(cat.id)}
+                      disabled={atLimit}
+                      className={`rounded-xl px-3 py-3 text-sm font-bold transition ${
+                        selected
+                          ? `bg-gradient-to-l ${selectedBroad.gradient} text-white shadow-md`
+                          : atLimit
+                            ? 'border border-border bg-background text-muted opacity-50'
+                            : 'border border-border bg-background text-foreground hover:border-primary'
+                      }`}
+                    >
+                      {cat.emoji ? `${cat.emoji} ` : ''}
+                      {categoryFa(cat.name)}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 3 — Title & description */}
         {step === 3 && (
-          <div className="space-y-6">
+          <section className="space-y-6">
             <div>
+              <h2 className="mb-4 text-lg font-black text-foreground">
+                {fa.createEvent.detailsHeading}
+              </h2>
               <label className="mb-2 block text-sm font-bold">{fa.createEvent.titleLabel}</label>
               <input
                 type="text"
@@ -351,84 +378,122 @@ export function CreateEvent() {
                 className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-bold">{fa.createEvent.iconLabel}</label>
-              <p className="mb-3 text-sm text-muted">{fa.createEvent.iconHint}</p>
-              <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
-                {EVENT_ICONS.map((emoji) => {
-                  const selected = icon === emoji;
-                  return (
-                    <button
-                      key={emoji}
-                      type="button"
-                      onClick={() => setIcon(emoji)}
-                      className={`flex aspect-square items-center justify-center rounded-xl text-2xl transition ${
-                        selected
-                          ? 'bg-primary text-white ring-4 ring-primary/25'
-                          : 'border border-border bg-background hover:border-primary'
-                      }`}
-                      aria-label={emoji}
-                    >
-                      {emoji}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          </section>
         )}
 
+        {/* 4 — Related icons */}
         {step === 4 && (
-          <div className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-bold">{fa.createEvent.dateLabel}</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-bold">{fa.createEvent.timeLabel}</label>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-            </div>
+          <section className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-bold">
-                {fa.createEvent.locationLabel}
-              </label>
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder={fa.createEvent.locationPlaceholder}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <h2 className="text-lg font-black text-foreground">{fa.createEvent.iconLabel}</h2>
+              <p className="mt-1 text-sm text-muted">{fa.createEvent.iconHint}</p>
+            </div>
+            <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
+              {availableIcons.map((emoji) => {
+                const selected = icon === emoji;
+                return (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setIcon(emoji)}
+                    className={`flex aspect-square items-center justify-center rounded-xl text-2xl transition ${
+                      selected
+                        ? 'bg-primary text-white ring-4 ring-primary/25'
+                        : 'border border-border bg-background hover:border-primary'
+                    }`}
+                    aria-label={emoji}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* 5 — Jalali date + city + publish type */}
+        {step === 5 && (
+          <section className="space-y-6">
+            <JalaliEventDatePicker value={date} onChange={setDate} />
+
+            <div ref={cityBoxRef} className="relative">
+              <label className="mb-2 block text-sm font-bold">{fa.createEvent.cityLabel}</label>
+              <p className="mb-2 text-sm text-muted">{fa.createEvent.cityHint}</p>
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input
+                  type="text"
+                  value={cityQuery}
+                  onChange={(e) => {
+                    setCityQuery(e.target.value);
+                    setCity(null);
+                    setCityOpen(true);
+                  }}
+                  onFocus={() => setCityOpen(true)}
+                  placeholder={fa.createEvent.cityPlaceholder}
+                  className="w-full rounded-xl border border-border bg-background py-3 pe-4 ps-10 focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoComplete="off"
+                />
+              </div>
+              {cityOpen && (
+                <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-border bg-white py-1 shadow-lg">
+                  {cityResults.length === 0 ? (
+                    <li className="px-4 py-3 text-sm text-muted">{fa.createEvent.cityEmpty}</li>
+                  ) : (
+                    cityResults.map((c) => (
+                      <li key={c.id}>
+                        <button
+                          type="button"
+                          onClick={() => pickCity(c)}
+                          className={`flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm font-bold hover:bg-primary-light ${
+                            city?.id === c.id ? 'bg-primary-light text-primary' : 'text-foreground'
+                          }`}
+                        >
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          {c.nameFa}
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
+              {city && (
+                <p className="mt-2 text-xs font-bold text-primary">
+                  {fa.createEvent.citySelected.replace('{city}', city.nameFa)}
+                </p>
+              )}
             </div>
 
+            {VOTING_ENABLED && (
+              <div>
+                <h3 className="mb-2 text-sm font-bold text-foreground">{fa.createEvent.chooseType}</h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <TypeChip
+                    selected={eventType === 'publish'}
+                    title={fa.createEvent.typePublish}
+                    onSelect={() => setEventType('publish')}
+                  />
+                  <TypeChip
+                    selected={eventType === 'voting'}
+                    title={fa.createEvent.typeVoting}
+                    onSelect={() => setEventType('voting')}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-border bg-background/60 p-4 text-sm">
-              <p className="text-xs font-bold text-primary">
-                {eventType === 'voting'
-                  ? fa.createEvent.typeVoting
-                  : fa.createEvent.typePublish}
-              </p>
-              <p className="mt-1 font-bold text-foreground">
+              <p className="font-bold text-foreground">
                 {icon} {title || fa.createEvent.titleLabel}
               </p>
-              <p className="mt-1 text-muted line-clamp-3">{description}</p>
+              <p className="mt-1 text-muted line-clamp-2">{description}</p>
               <p className="mt-2 text-xs font-semibold text-primary">
                 {selectedBroad?.emoji} {selectedBroad?.label}
                 {relatedLabels.length > 0 ? ` · ${relatedLabels.join('، ')}` : ''}
+                {city ? ` · ${city.nameFa}` : ''}
               </p>
             </div>
-          </div>
+          </section>
         )}
 
         <div className="mt-8 flex gap-3 border-t border-border pt-6">
@@ -462,7 +527,7 @@ export function CreateEvent() {
             >
               {loading
                 ? fa.createEvent.publishing
-                : eventType === 'voting'
+                : VOTING_ENABLED && eventType === 'voting'
                   ? fa.createEvent.submitVoting
                   : fa.createEvent.publishEvent}
             </button>
@@ -473,34 +538,26 @@ export function CreateEvent() {
   );
 }
 
-function TypeCard({
+function TypeChip({
   selected,
   title,
-  hint,
   onSelect,
 }: {
   selected: boolean;
   title: string;
-  hint: string;
   onSelect: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`relative rounded-2xl border-2 p-5 text-start transition active:scale-[0.98] ${
+      className={`rounded-xl border-2 px-4 py-3 text-sm font-black transition ${
         selected
-          ? 'border-primary bg-primary-light/40 shadow-md'
-          : 'border-border bg-white hover:border-primary'
+          ? 'border-primary bg-primary-light/50 text-primary'
+          : 'border-border bg-white text-foreground hover:border-primary'
       }`}
     >
-      {selected && (
-        <span className="absolute -top-2 -start-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow">
-          <Check className="h-3.5 w-3.5" strokeWidth={3.5} />
-        </span>
-      )}
-      <p className="text-base font-black text-foreground">{title}</p>
-      <p className="mt-1.5 text-sm text-muted">{hint}</p>
+      {title}
     </button>
   );
 }

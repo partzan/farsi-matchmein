@@ -10,6 +10,7 @@ import {
   type MaritalStatus,
 } from './ProfilePreferencesStep';
 import { VoteCounterRail } from '../VoteCounterRail';
+import { VOTING_ENABLED } from '../../lib/features';
 import { getAvatarUrl } from '../../lib/avatars';
 import {
   MAX_BROAD,
@@ -478,7 +479,7 @@ export function ProfileForm({ mode }: ProfileFormProps) {
             <h1 className="text-2xl font-black text-foreground">
               {mode === 'setup' ? fa.profileSetup.title : fa.profile.title}
             </h1>
-            {mode === 'edit' && voteTokens !== null && !needsAuth && (
+            {VOTING_ENABLED && mode === 'edit' && voteTokens !== null && !needsAuth && (
               <VoteCounterRail remaining={voteTokens} sticky={false} />
             )}
           </div>

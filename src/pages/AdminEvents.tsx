@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import { canAccessAdmin, ensureAdministratorRank } from '../lib/admin';
 import { EVENT_ICONS } from '../lib/eventIcons';
+import { VOTING_ENABLED } from '../lib/features';
 import { supabase } from '../lib/supabase';
 import { fa } from '../locale/fa';
 import { categoryFa } from '../locale/categoriesFa';
@@ -73,7 +74,7 @@ function toEditForm(event: AdminEvent): EditForm {
 
 export function AdminEvents() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('voting');
+  const [tab, setTab] = useState<Tab>(VOTING_ENABLED ? 'voting' : 'available');
   const [loading, setLoading] = useState(true);
   const [available, setAvailable] = useState<AdminEvent[]>([]);
   const [voting, setVoting] = useState<AdminEvent[]>([]);
@@ -275,17 +276,19 @@ export function AdminEvents() {
         >
           {fa.adminEvents.tabAvailable} ({available.length})
         </button>
-        <button
-          type="button"
-          onClick={() => setTab('voting')}
-          className={`px-5 py-3 text-sm font-bold border-b-4 transition-colors ${
-            tab === 'voting'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          {fa.adminEvents.tabVoting} ({voting.length})
-        </button>
+        {VOTING_ENABLED && (
+          <button
+            type="button"
+            onClick={() => setTab('voting')}
+            className={`px-5 py-3 text-sm font-bold border-b-4 transition-colors ${
+              tab === 'voting'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {fa.adminEvents.tabVoting} ({voting.length})
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -494,8 +497,10 @@ export function AdminEvents() {
                     onChange={(e) => setForm({ ...form, status: e.target.value })}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-primary"
                   >
-                    <option value="voting">{fa.adminEvents.tabVoting}</option>
                     <option value="available">{fa.adminEvents.tabAvailable}</option>
+                    {VOTING_ENABLED && (
+                      <option value="voting">{fa.adminEvents.tabVoting}</option>
+                    )}
                     <option value="completed">برگزار شده</option>
                     <option value="cancelled">لغو شده</option>
                   </select>
