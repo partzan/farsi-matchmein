@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
+import { canAccessAdmin } from '../lib/admin';
 import { fa } from '../locale/fa';
 import { BrandLogo } from './BrandLogo';
 import { loginUrl, signInWithGoogle } from '../lib/auth';
@@ -99,7 +100,7 @@ export function Navbar() {
                 <Link to="/my-events" className={linkStrong}>
                   {fa.nav.myEvents}
                 </Link>
-                {(userRank === 'administrator' || userRank === 'moderator') && (
+                {canAccessAdmin(user.email, userRank) && (
                   <Link to="/admin/events" className={linkClass}>
                     {fa.nav.adminEvents}
                   </Link>
@@ -176,7 +177,7 @@ export function Navbar() {
                   >
                     {fa.nav.myEvents}
                   </Link>
-                  {(userRank === 'administrator' || userRank === 'moderator') && (
+                  {canAccessAdmin(user.email, userRank) && (
                     <Link
                       to="/admin/events"
                       onClick={() => setIsMobileMenuOpen(false)}

@@ -2,16 +2,12 @@ import { useState } from 'react';
 import { FlipCard } from './FlipCard';
 import { fa } from '../locale/fa';
 
-/** Unsplash photos matched to each combined card theme */
+/** Local optimized assets (WebP + JPEG fallback) for platform flip cards */
 const CARD_PHOTOS = [
-  // Voting / hands raised in a crowd
-  'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
-  // Friends meeting / privacy-friendly social
-  'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80',
-  // Phone / planning / notify
-  'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80',
-  // Celebration / rewards vibe
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
+  { webp: '/platform/vote.webp', jpg: '/platform/vote.jpg', alt: '' },
+  { webp: '/platform/privacy.webp', jpg: '/platform/privacy.jpg', alt: '' },
+  { webp: '/platform/notify.webp', jpg: '/platform/notify.jpg', alt: '' },
+  { webp: '/platform/rewards.webp', jpg: '/platform/rewards.jpg', alt: '' },
 ];
 
 const BACK_COLORS = [
@@ -102,12 +98,18 @@ export function PlatformInfoTiles() {
                 style={{ wrapper: { maxWidth: 280 } }}
                 frontChild={
                   <div className="relative flex h-full w-full flex-col justify-end overflow-hidden rounded-3xl border border-white/20 shadow-xl shadow-primary/15">
-                    <img
-                      src={CARD_PHOTOS[i]}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
-                      loading="lazy"
-                    />
+                    <picture>
+                      <source srcSet={CARD_PHOTOS[i].webp} type="image/webp" />
+                      <img
+                        src={CARD_PHOTOS[i].jpg}
+                        alt={CARD_PHOTOS[i].alt}
+                        width={720}
+                        height={900}
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading={i === 0 ? 'eager' : 'lazy'}
+                        decoding="async"
+                      />
+                    </picture>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/15" />
                     <div className="relative z-10 flex flex-col gap-2 p-5 text-white">
                       <span className="text-xs font-extrabold text-white/70">

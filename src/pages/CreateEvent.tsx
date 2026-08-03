@@ -1,336 +1,536 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check } from 'lucide-react';
+import { canAccessAdmin, ensureAdministratorRank } from '../lib/admin';
+import {
+  BROAD_INTERESTS,
+  categoriesForNames,
+  type BroadInterest,
+} from '../lib/broadInterests';
+import { EVENT_ICONS } from '../lib/eventIcons';
 import { supabase } from '../lib/supabase';
-import { getCategoryColor } from '../lib/colors';
-import { InterestPicker } from '../components/InterestPicker';
-import { fa } from '../locale/fa';
 import { categoryFa } from '../locale/categoriesFa';
+import { fa } from '../locale/fa';
 
 type Category = { id: string; name: string; emoji?: string; group_name?: string };
+type EventCreateType = 'publish' | 'voting';
+
+const TOTAL_STEPS = 4;
+const RELATED_REQUIRED = 3;
 
 export function CreateEvent() {
   const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
   const [step, setStep] = useState(1);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State
-  const [categoryId, setCategoryId] = useState('');
+  const [eventType, setEventType] = useState<EventCreateType | ''>('');
+  const [broadId, setBroadId] = useState('');
+  const [relatedIds, setRelatedIds] = useState<string[]>([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [icon, setIcon] = useState<string>(EVENT_ICONS[0]);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [city, setCity] = useState('');
-  const [targetedInterests, setTargetedInterests] = useState<string[]>([]);
-  const [pitch, setPitch] = useState('');
-  const [genderRestriction, setGenderRestriction] = useState('everyone');
+  const [location, setLocation] = useState('');
 
-  // 10-word limit logic
-  const pitchWords = pitch.trim() ? pitch.trim().split(/\s+/) : [];
-  const wordCount = pitchWords.length;
+  const selectedBroad = useMemo(
+    () => BROAD_INTERESTS.find((b) => b.id === broadId) ?? null,
+    [broadId],
+  );
+
+  const relatedSpecifics = useMemo(() => {
+    if (!selectedBroad) return [] as Category[];
+    return categoriesForNames(selectedBroad.specifics, categories as any);
+  }, [selectedBroad, categories]);
 
   useEffect(() => {
-    async function checkAccess() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+    let cancelled = false;
+
+    async function boot() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
         navigate('/');
         return;
       }
+
+      const { data: profile } = await supabase
+        .from('users')
+        .select('rank')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (!canAccessAdmin(session.user.email, profile?.rank)) {
+        navigate('/');
+        return;
+      }
+      await ensureAdministratorRank(session.user.id, session.user.email, profile?.rank);
+
+      const { data: cats } = await supabase
+        .from('interest_categories')
+        .select('id, name, emoji, group_name')
+        .order('name');
+      if (!cancelled && cats) setCategories(cats);
+      if (!cancelled) setChecking(false);
     }
-    
-    checkAccess();
-    
-    supabase.from('interest_categories').select('*').order('name').then(({ data }) => {
-      if (data) setCategories(data);
+
+    boot();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate]);
+
+  const selectBroad = (id: string) => {
+    setBroadId(id);
+    setRelatedIds([]);
+  };
+
+  const toggleRelated = (id: string) => {
+    setRelatedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= RELATED_REQUIRED) return prev;
+      return [...prev, id];
     });
-  }, []);
+  };
+
+  const canNext =
+    (step === 1 && !!eventType) ||
+    (step === 2 && !!broadId && relatedIds.length === RELATED_REQUIRED) ||
+    (step === 3 && !!title.trim() && !!description.trim() && !!icon) ||
+    (step === 4 && !!date && !!time && !!location.trim());
 
   const handleNext = () => {
-    if (step === 3 && targetedInterests.length !== 3) {
+    if (!canNext) {
+      setError(
+        step === 1
+          ? fa.createEvent.needType
+          : step === 2
+            ? relatedIds.length !== RELATED_REQUIRED
+              ? fa.createEvent.errorExactly3
+              : fa.createEvent.needCategory
+            : step === 3
+              ? fa.createEvent.needDetails
+              : fa.createEvent.needSchedule,
+      );
+      return;
+    }
+    setError(null);
+    setStep((s) => Math.min(TOTAL_STEPS, s + 1));
+  };
+
+  const handlePublish = async () => {
+    if (!canNext || !eventType) {
+      setError(fa.createEvent.needSchedule);
+      return;
+    }
+    if (relatedIds.length !== RELATED_REQUIRED) {
       setError(fa.createEvent.errorExactly3);
       return;
     }
     setError(null);
-    setStep(s => s + 1);
-  };
-  const handleBack = () => setStep(s => s - 1);
-
-  const toggleTargetedInterest = (id: string) => {
-    if (targetedInterests.includes(id)) {
-      setTargetedInterests(prev => prev.filter(i => i !== id));
-    } else if (targetedInterests.length < 3) {
-      setTargetedInterests(prev => [...prev, id]);
-    }
-  };
-
-  const handlePublish = async () => {
-    setError(null);
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error(fa.createEvent.mustLoginError);
 
-      const selectedCategory = categories.find(c => c.id === categoryId);
-      const generatedTitle = `${selectedCategory?.name || 'Event'} in ${city}`;
+      const { data: profile } = await supabase
+        .from('users')
+        .select('rank')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (!canAccessAdmin(user.email, profile?.rank)) {
+        throw new Error(fa.createEvent.adminOnlyError);
+      }
+
+      const status = eventType === 'voting' ? 'voting' : 'available';
 
       const { data, error: insertError } = await supabase
         .from('events')
         .insert({
           host_id: user.id,
-          title: generatedTitle,
-          pitch,
-          category_id: categoryId,
-          location: city, // Storing city as location
+          title: title.trim(),
+          pitch: description.trim(),
+          description: description.trim(),
+          category_id: relatedIds[0],
+          location: location.trim(),
           datetime: new Date(`${date}T${time}`).toISOString(),
-          targeted_interest_ids: targetedInterests.length === 3 ? targetedInterests : null,
-          gender_restriction: genderRestriction,
-          status: 'voting',
+          targeted_interest_ids: relatedIds,
+          gender_restriction: 'everyone',
+          icon,
+          status,
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
-      
-      // Match Making Engine Trigger
-      if (data && data.id) {
+
+      if (data?.id) {
         await supabase.rpc('compute_event_matches', { new_event_id: data.id });
+        await supabase.from('event_rsvps').insert({
+          event_id: data.id,
+          user_id: user.id,
+          status: 'going',
+        });
       }
 
-      // RSVP the host
-      await supabase.from('event_rsvps').insert({
-        event_id: data.id,
-        user_id: user.id,
-        status: 'going'
-      });
-
-      navigate(`/event/${data.id}`);
+      navigate('/admin/events');
     } catch (err: any) {
       console.error(err);
       setError(err.message || fa.createEvent.publishFailedError);
+    } finally {
       setLoading(false);
     }
   };
 
-  const getStepIndicator = () => {
-    if (step === 5) return fa.createEvent.stepReview;
-    return `${fa.createEvent.stepPrefix} ${step} ${fa.createEvent.stepOf}`;
-  };
+  if (checking) {
+    return (
+      <div className="py-20 text-center text-muted" dir="rtl">
+        {fa.profile.loading}
+      </div>
+    );
+  }
+
+  const relatedLabels = relatedIds
+    .map((id) => categoryFa(categories.find((c) => c.id === id)?.name))
+    .filter(Boolean);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-extrabold text-gray-900">{fa.createEvent.title}</h1>
-          <span className="text-primary font-bold bg-primary-light px-3 py-1 rounded-full text-sm">
-            {getStepIndicator()}
+    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8" dir="rtl">
+      <div className="rounded-3xl border border-border bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-black text-foreground sm:text-3xl">
+            {fa.createEvent.title}
+          </h1>
+          <span className="rounded-full bg-primary-light px-3 py-1 text-sm font-bold text-primary">
+            {fa.createEvent.stepPrefix} {step.toLocaleString('fa-IR')}{' '}
+            {fa.createEvent.stepOf}
           </span>
         </div>
 
-        {error && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg text-sm">{error}</div>}
+        <div className="mb-8 flex gap-2">
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((n) => (
+            <div
+              key={n}
+              className={`h-1.5 flex-1 rounded-full ${
+                step >= n ? 'bg-primary' : 'bg-border'
+              }`}
+            />
+          ))}
+        </div>
 
-        <div className="space-y-6">
-          {/* Frame 1: Category */}
-          {step === 1 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <label className="block text-xl font-bold text-gray-900 mb-4">{fa.createEvent.chooseCategory}</label>
-              <p className="text-gray-500 text-sm mb-4">{fa.createEvent.categoryHint}</p>
-              <InterestPicker
-                categories={categories}
-                selectedInterests={categoryId ? [categoryId] : []}
-                maxSelections={1}
-                onToggle={(id) => setCategoryId(categoryId === id ? '' : id)}
-              />
-            </div>
-          )}
+        {error && (
+          <div className="mb-6 rounded-xl bg-accent-red/10 px-4 py-3 text-sm font-semibold text-accent-red">
+            {error}
+          </div>
+        )}
 
-          {/* Frame 2: When & Where */}
-          {step === 2 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">{fa.createEvent.dateLabel}</label>
-                  <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-900 mb-2">{fa.createEvent.timeLabel}</label>
-                  <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all" required />
-                </div>
+        {step === 1 && (
+          <div className="space-y-4">
+            <section>
+              <h2 className="text-lg font-black text-foreground">
+                {fa.createEvent.chooseType}
+              </h2>
+              <p className="mt-1 text-sm text-muted">{fa.createEvent.typeHint}</p>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <TypeCard
+                  selected={eventType === 'publish'}
+                  title={fa.createEvent.typePublish}
+                  hint={fa.createEvent.typePublishHint}
+                  onSelect={() => setEventType('publish')}
+                />
+                <TypeCard
+                  selected={eventType === 'voting'}
+                  title={fa.createEvent.typeVoting}
+                  hint={fa.createEvent.typeVotingHint}
+                  onSelect={() => setEventType('voting')}
+                />
               </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-900 mb-2">{fa.createEvent.cityLabel}</label>
-                <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder={fa.createEvent.cityPlaceholder} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all" required />
-              </div>
-            </div>
-          )}
+            </section>
+          </div>
+        )}
 
-          {/* Frame 3: Audience Preference */}
-          {step === 3 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                <div className="animate-in fade-in slide-in-from-top-2">
-                  <div className="mb-6">
-                    <label className="block text-xl font-bold text-gray-900 mb-2">{fa.createEvent.genderRestriction}</label>
-                    <select 
-                      value={genderRestriction}
-                      onChange={e => setGenderRestriction(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all font-bold"
-                    >
-                      <option value="everyone">{fa.createEvent.everyone}</option>
-                      <option value="female_only">👩 {fa.events.womenOnly}</option>
-                      <option value="male_only">👨 {fa.events.menOnly}</option>
-                    </select>
-                  </div>
-                  
-                  <div className="flex justify-between items-end mb-4">
-                    <div>
-                      <label className="block text-xl font-bold text-gray-900">{fa.createEvent.targetAudience}</label>
-                      <p className="text-gray-500 mt-1">{fa.createEvent.audienceHint}</p>
-                    </div>
-                    <span className={`text-sm font-bold ${targetedInterests.length === 3 ? 'text-primary' : 'text-gray-500'}`}>
-                      {targetedInterests.length} / 3 {fa.createEvent.selected}
-                    </span>
-                  </div>
-                  
-                  {targetedInterests.length > 0 && (
-                    <div className="mb-4 bg-primary/10 rounded-xl p-4 flex flex-wrap gap-2">
-                      {targetedInterests.map(id => {
-                        const c = categories.find(cat => cat.id === id);
-                        if (!c) return null;
-                        return (
-                          <button
-                            key={`target-${c.id}`}
-                            onClick={() => toggleTargetedInterest(c.id)}
-                            className="px-4 py-2 bg-primary text-white rounded-full text-sm font-bold shadow-sm flex items-center gap-2 hover:bg-primary-dark transition-colors"
-                          >
-                            {c.emoji} {categoryFa(c.name)} <span className="opacity-70">✕</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  <InterestPicker
-                    categories={categories}
-                    selectedInterests={targetedInterests}
-                    maxSelections={3}
-                    onToggle={toggleTargetedInterest}
+        {step === 2 && (
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-lg font-black text-foreground">
+                {fa.createEvent.choosePrimary}
+              </h2>
+              <p className="mt-1 text-sm text-muted">{fa.createEvent.primaryHint}</p>
+              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+                {BROAD_INTERESTS.map((opt) => (
+                  <BroadCard
+                    key={opt.id}
+                    opt={opt}
+                    selected={broadId === opt.id}
+                    onToggle={() => selectBroad(opt.id)}
                   />
-                </div>
-            </div>
-          )}
+                ))}
+              </div>
+            </section>
 
-          {/* Frame 4: Pitch */}
-          {step === 4 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <div>
-                <div className="flex justify-between items-end mb-2">
-                  <label className="block text-sm font-bold text-gray-900">{fa.createEvent.pitchLabel}</label>
-                  <span className={`text-sm font-bold flex-shrink-0 ms-4 ${wordCount > 10 ? 'text-red-500' : wordCount === 10 ? 'text-primary' : 'text-gray-500'}`}>
-                    {wordCount}/10 {fa.createEvent.words}
+            {selectedBroad && (
+              <section>
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <h2 className="text-lg font-black text-foreground">
+                      {fa.createEvent.chooseRelated}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted">
+                      {fa.createEvent.relatedHint.replace('{broad}', selectedBroad.label)}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary">
+                    {fa.createEvent.relatedSelected.replace(
+                      '{count}',
+                      relatedIds.length.toLocaleString('fa-IR'),
+                    )}
                   </span>
                 </div>
-                <textarea 
-                  rows={4} 
-                  value={pitch} 
-                  onChange={e => {
-                    const newPitch = e.target.value;
-                    const words = newPitch.trim() ? newPitch.trim().split(/\s+/) : [];
-                    if (words.length <= 10 || newPitch.length < pitch.length) {
-                      setPitch(newPitch);
-                    }
-                  }} 
-                  placeholder={fa.createEvent.pitchPlaceholder} 
-                  className={`w-full px-4 py-3 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all resize-none ${
-                    wordCount > 10 ? 'border-red-300 focus:ring-red-500' : 'border-gray-200 focus:ring-primary'
-                  }`}
-                  required 
+                {relatedSpecifics.length === 0 ? (
+                  <p className="mt-4 rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                    {fa.createEvent.noRelated}
+                  </p>
+                ) : (
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {relatedSpecifics.map((cat) => {
+                      const selected = relatedIds.includes(cat.id);
+                      const atLimit = relatedIds.length >= RELATED_REQUIRED && !selected;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => toggleRelated(cat.id)}
+                          disabled={atLimit}
+                          className={`rounded-xl px-3 py-3 text-sm font-bold transition ${
+                            selected
+                              ? `bg-gradient-to-l ${selectedBroad.gradient} text-white shadow-md`
+                              : atLimit
+                                ? 'border border-border bg-background text-muted opacity-50'
+                                : 'border border-border bg-background text-foreground hover:border-primary'
+                          }`}
+                        >
+                          {cat.emoji ? `${cat.emoji} ` : ''}
+                          {categoryFa(cat.name)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6">
+            <div>
+              <label className="mb-2 block text-sm font-bold">{fa.createEvent.titleLabel}</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={fa.createEvent.titlePlaceholder}
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold">
+                {fa.createEvent.descriptionLabel}
+              </label>
+              <textarea
+                rows={5}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={fa.createEvent.descriptionPlaceholder}
+                className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold">{fa.createEvent.iconLabel}</label>
+              <p className="mb-3 text-sm text-muted">{fa.createEvent.iconHint}</p>
+              <div className="grid grid-cols-6 gap-2 sm:grid-cols-8">
+                {EVENT_ICONS.map((emoji) => {
+                  const selected = icon === emoji;
+                  return (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setIcon(emoji)}
+                      className={`flex aspect-square items-center justify-center rounded-xl text-2xl transition ${
+                        selected
+                          ? 'bg-primary text-white ring-4 ring-primary/25'
+                          : 'border border-border bg-background hover:border-primary'
+                      }`}
+                      aria-label={emoji}
+                    >
+                      {emoji}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-bold">{fa.createEvent.dateLabel}</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-bold">{fa.createEvent.timeLabel}</label>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
-          )}
-
-          {/* Frame 5: Review */}
-          {step === 5 && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-              <h2 className="text-xl font-extrabold text-gray-900">{fa.createEvent.reviewTitle}</h2>
-              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                <div className="mb-4">
-                  {(() => {
-                    const catName = categories.find(c => c.id === categoryId)?.name || 'Event';
-                    const color = getCategoryColor(catName);
-                    return (
-                      <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-bold ${color.bg} ${color.text}`}>
-                        <span className="flex-shrink-0">★</span> {categoryFa(catName)}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <h3 className="font-extrabold text-2xl text-gray-900 mb-2">
-                  {categories.find(c => c.id === categoryId)?.name || 'Event'} in {city}
-                </h3>
-                <p className="text-gray-500 font-bold mb-4">
-                  {date && time ? new Date(`${date}T${time}`).toLocaleString('fa-IR') : fa.createEvent.noDateSet}
-                </p>
-                <p className="text-gray-700 mb-4 whitespace-pre-wrap text-lg leading-relaxed italic">"{pitch}"</p>
-                
-                <div className="pt-4 border-t border-gray-200">
-                  <p className="text-sm font-bold text-gray-600 mb-2">{fa.createEvent.audienceTargeting}</p>
-                  {targetedInterests.length === 3 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {targetedInterests.map(id => {
-                        const cat = categories.find(c => c.id === id);
-                        const color = getCategoryColor(cat?.name || '');
-                        return (
-                          <span key={id} className={`px-2 py-1 rounded-sm text-xs font-bold ${color.bg} ${color.text}`}>
-                            {categoryFa(cat?.name)}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-red-500">{fa.createEvent.mustSelect3}</p>
-                  )}
-                  
-                  <p className="text-sm font-bold text-gray-600 mt-4 mb-2">{fa.createEvent.genderRestriction}:</p>
-                  <p className="text-gray-900 font-bold">
-                    {genderRestriction === 'everyone' ? fa.createEvent.everyone : genderRestriction === 'female_only' ? `👩 ${fa.events.womenOnly}` : `👨 ${fa.events.menOnly}`}
-                  </p>
-                </div>
-              </div>
+            <div>
+              <label className="mb-2 block text-sm font-bold">
+                {fa.createEvent.locationLabel}
+              </label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder={fa.createEvent.locationPlaceholder}
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
-          )}
 
-          <div className="pt-6 border-t border-gray-100 flex gap-4">
-            {step > 1 && (
-              <button type="button" onClick={handleBack} className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-full font-bold transition-colors">
-                {fa.interestPicker.back}
-              </button>
-            )}
-            {step < 5 ? (
-              <button 
-                type="button" 
-                onClick={handleNext}
-                disabled={
-                  (step === 1 && !categoryId) || 
-                  (step === 2 && (!date || !time || !city)) ||
-                  (step === 3 && targetedInterests.length !== 3) ||
-                  (step === 4 && (!pitch.trim() || wordCount > 10))
-                }
-                className="flex-[2] bg-primary hover:bg-primary-dark text-white py-4 rounded-full font-bold transition-colors shadow-sm disabled:opacity-50"
-              >
-                {fa.createEvent.continueBtn}
-              </button>
-            ) : (
-              <button 
-                type="button" 
-                onClick={handlePublish}
-                disabled={loading}
-                className="flex-[2] bg-primary hover:bg-primary-dark text-white py-4 rounded-full font-bold transition-colors shadow-sm disabled:opacity-50"
-              >
-                {loading ? fa.createEvent.publishing : fa.createEvent.publishEvent}
-              </button>
-            )}
+            <div className="rounded-2xl border border-border bg-background/60 p-4 text-sm">
+              <p className="text-xs font-bold text-primary">
+                {eventType === 'voting'
+                  ? fa.createEvent.typeVoting
+                  : fa.createEvent.typePublish}
+              </p>
+              <p className="mt-1 font-bold text-foreground">
+                {icon} {title || fa.createEvent.titleLabel}
+              </p>
+              <p className="mt-1 text-muted line-clamp-3">{description}</p>
+              <p className="mt-2 text-xs font-semibold text-primary">
+                {selectedBroad?.emoji} {selectedBroad?.label}
+                {relatedLabels.length > 0 ? ` · ${relatedLabels.join('، ')}` : ''}
+              </p>
+            </div>
           </div>
+        )}
+
+        <div className="mt-8 flex gap-3 border-t border-border pt-6">
+          {step > 1 && (
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setStep((s) => s - 1);
+              }}
+              className="flex-1 rounded-xl bg-background py-3.5 text-sm font-bold text-foreground transition hover:bg-border/60"
+            >
+              {fa.interestPicker.back}
+            </button>
+          )}
+          {step < TOTAL_STEPS ? (
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!canNext}
+              className="flex-[2] rounded-xl bg-primary py-3.5 text-sm font-bold text-white transition hover:bg-primary-dark disabled:opacity-40"
+            >
+              {fa.createEvent.continueBtn}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={loading || !canNext}
+              className="flex-[2] rounded-xl bg-primary py-3.5 text-sm font-bold text-white transition hover:bg-primary-dark disabled:opacity-40"
+            >
+              {loading
+                ? fa.createEvent.publishing
+                : eventType === 'voting'
+                  ? fa.createEvent.submitVoting
+                  : fa.createEvent.publishEvent}
+            </button>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function TypeCard({
+  selected,
+  title,
+  hint,
+  onSelect,
+}: {
+  selected: boolean;
+  title: string;
+  hint: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`relative rounded-2xl border-2 p-5 text-start transition active:scale-[0.98] ${
+        selected
+          ? 'border-primary bg-primary-light/40 shadow-md'
+          : 'border-border bg-white hover:border-primary'
+      }`}
+    >
+      {selected && (
+        <span className="absolute -top-2 -start-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-white shadow">
+          <Check className="h-3.5 w-3.5" strokeWidth={3.5} />
+        </span>
+      )}
+      <p className="text-base font-black text-foreground">{title}</p>
+      <p className="mt-1.5 text-sm text-muted">{hint}</p>
+    </button>
+  );
+}
+
+function BroadCard({
+  opt,
+  selected,
+  onToggle,
+}: {
+  opt: BroadInterest;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`relative flex min-h-[6.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 text-center transition active:scale-[0.97] ${
+        selected
+          ? `border-transparent bg-gradient-to-br ${opt.gradient} text-white shadow-lg`
+          : 'border-border bg-white text-foreground hover:border-primary hover:shadow-md'
+      }`}
+    >
+      {selected && (
+        <span className="absolute -top-2 -start-2 flex h-6 w-6 items-center justify-center rounded-full bg-white text-primary shadow">
+          <Check className="h-3.5 w-3.5" strokeWidth={3.5} />
+        </span>
+      )}
+      <span className="text-3xl">{opt.emoji}</span>
+      <span className="text-xs font-black leading-snug">{opt.label}</span>
+    </button>
   );
 }

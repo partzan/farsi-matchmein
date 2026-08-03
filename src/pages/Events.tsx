@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { canAccessAdmin } from '../lib/admin';
 import { supabase } from '../lib/supabase';
 import { getCategoryColor } from '../lib/colors';
 import { VoteCounterRail } from '../components/VoteCounterRail';
+import { VotingEventCard } from '../components/VotingEventCard';
 import { SignupModal } from '../components/SignupModal';
 import type { User } from '@supabase/supabase-js';
 import { fa } from '../locale/fa';
@@ -12,6 +14,7 @@ type Event = {
   id: string;
   title: string;
   pitch: string;
+  description?: string | null;
   datetime: string;
   max_attendees: number | null;
   targeted_interest_ids: string[] | null;
@@ -23,6 +26,7 @@ type Event = {
   isPreferredTime?: boolean;
   status?: string;
   image_url?: string;
+  icon?: string | null;
   gender_restriction?: string;
 };
 
@@ -32,6 +36,7 @@ export function Events() {
   const [voteTokens, setVoteTokens] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRank, setUserRank] = useState('user');
   const [showSignup, setShowSignup] = useState(false);
   const [animatingEventId, setAnimatingEventId] = useState<string | null>(null);
@@ -48,12 +53,13 @@ export function Events() {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
+      setUserEmail(session?.user?.email ?? null);
 
       // Voting events are public — guests can browse before signing up
       const { data: vEvents } = await supabase
         .from('events')
         .select(`
-          id, title, pitch, description, datetime, max_attendees, image_url, status, gender_restriction,
+          id, title, pitch, description, datetime, max_attendees, image_url, icon, status, gender_restriction,
           category:interest_categories(id, name),
           host:users!events_host_id_fkey(display_name, is_verified),
           event_votes(count)
@@ -106,6 +112,7 @@ export function Events() {
         `)
         .eq('event_matches.user_id', session.user.id)
         .eq('event_matches.is_active', true)
+        .neq('status', 'voting')
         .gte('datetime', new Date().toISOString())
         .order('datetime', { ascending: true });
 
@@ -151,6 +158,7 @@ export function Events() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setUserEmail(session?.user?.email ?? null);
       if (session?.user) {
         fetchEventsAndMatches();
       }
@@ -272,60 +280,26 @@ export function Events() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {votingEvents.map(event => {
-              const currentVotes = Array.isArray(event.event_votes) && event.event_votes[0] ? event.event_votes[0].count : 0;
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {votingEvents.map((event) => {
+              const currentVotes =
+                Array.isArray(event.event_votes) && event.event_votes[0]
+                  ? event.event_votes[0].count
+                  : 0;
               return (
-                <div key={event.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden group">
-                  <div className="h-48 w-full bg-gray-200 relative overflow-hidden">
-                    {event.image_url ? (
-                      <img src={event.image_url} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">{fa.events.noImage}</div>
-                    )}
-                    
-                    <div className="absolute top-3 start-3 flex flex-col gap-2">
-                      {event.gender_restriction === 'female_only' && (
-                        <div className="bg-pink-100/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-pink-800 shadow-sm border border-pink-200">
-                          👩 {fa.events.womenOnly}
-                        </div>
-                      )}
-                      {event.gender_restriction === 'male_only' && (
-                        <div className="bg-blue-100/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-blue-800 shadow-sm border border-blue-200">
-                          👨 {fa.events.menOnly}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div 
-                      ref={el => { eventBadgeRefs.current[event.id] = el; }}
-                      className={`absolute bottom-3 end-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-gray-900 shadow-md flex items-center gap-1 transition-all duration-300 ${animatingEventId === event.id ? 'scale-125 ring-4 ring-primary/40 bg-primary text-white' : unanimatingEventId === event.id ? 'scale-90 opacity-80 bg-red-50 text-red-600 border border-red-200' : ''}`}
-                    >
-                      <span className="text-sm">⭐</span> {currentVotes} {fa.events.votes}
-                    </div>
-                  </div>
-                  <div className="p-5 flex flex-col flex-1">
-                    <div className="text-xs font-bold text-primary mb-2">{categoryFa(event.category?.name)}</div>
-                    <h3 className="font-extrabold text-lg text-gray-900 mb-2 leading-tight">{event.title}</h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{event.pitch}</p>
-                    
-                    {user && userVotes.has(event.id) ? (
-                      <button 
-                        onClick={() => handleUnvote(event.id)}
-                        className="mt-auto w-full bg-transparent border-2 border-gray-200 text-gray-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600 py-2.5 rounded-full font-bold transition-colors text-sm"
-                      >
-                        {fa.events.removeVote}
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => handleVote(event.id)}
-                        className="mt-auto w-full bg-primary/10 hover:bg-primary hover:text-white text-primary py-2.5 rounded-full font-bold transition-colors text-sm"
-                      >
-                        {fa.events.vote}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <VotingEventCard
+                  key={event.id}
+                  event={event}
+                  hasVoted={userVotes.has(event.id)}
+                  voteCount={currentVotes}
+                  animating={animatingEventId === event.id}
+                  unAnimating={unanimatingEventId === event.id}
+                  badgeRef={(el) => {
+                    eventBadgeRefs.current[event.id] = el;
+                  }}
+                  onVote={() => handleVote(event.id)}
+                  onUnvote={() => handleUnvote(event.id)}
+                />
               );
             })}
           </div>
@@ -390,8 +364,8 @@ export function Events() {
             >
               {fa.events.noUpcomingVoteCta}
             </a>
-            {(userRank === 'administrator' || userRank === 'moderator') && (
-              <Link to="/create-event" className="text-primary font-bold hover:underline mt-4 block">{fa.events.createFirst}</Link>
+            {canAccessAdmin(userEmail, userRank) && (
+              <Link to="/admin/events" className="text-primary font-bold hover:underline mt-4 block">{fa.events.createFirst}</Link>
             )}
           </div>
         ) : (

@@ -42,7 +42,7 @@ export const BANNED_INTEREST_NAMES = new Set([
 export const BROAD_INTERESTS: BroadInterest[] = [
   {
     id: 'food_fun',
-    label: 'غذا و تفریح',
+    label: 'غذا و دورهمی',
     emoji: '🍕',
     gradient: 'from-amber-400 to-rose-500',
     tint: 'bg-amber-50',
@@ -62,7 +62,7 @@ export const BROAD_INTERESTS: BroadInterest[] = [
   },
   {
     id: 'nature_travel',
-    label: 'طبیعت و سفر',
+    label: 'طبیعت و گشت',
     emoji: '🏔️',
     gradient: 'from-emerald-400 to-teal-600',
     tint: 'bg-emerald-50',
@@ -84,7 +84,7 @@ export const BROAD_INTERESTS: BroadInterest[] = [
   },
   {
     id: 'culture_lit',
-    label: 'فرهنگ و ادبیات',
+    label: 'کتاب و فرهنگ',
     emoji: '📚',
     gradient: 'from-indigo-400 to-purple-600',
     tint: 'bg-indigo-50',
@@ -119,7 +119,7 @@ export const BROAD_INTERESTS: BroadInterest[] = [
   },
   {
     id: 'theater_cinema',
-    label: 'تِاتر و سینما',
+    label: 'تئاتر و سینما',
     emoji: '🎬',
     gradient: 'from-rose-500 to-red-600',
     tint: 'bg-rose-50',
@@ -133,7 +133,7 @@ export const BROAD_INTERESTS: BroadInterest[] = [
   },
   {
     id: 'sports_lifestyle',
-    label: 'ورزش و سبک زندگی',
+    label: 'ورزش و حال‌خوبی',
     emoji: '⚽',
     gradient: 'from-lime-400 to-emerald-600',
     tint: 'bg-lime-50',
@@ -196,7 +196,7 @@ export const BROAD_INTERESTS: BroadInterest[] = [
   },
   {
     id: 'arts_creative',
-    label: 'هنر و خلاقیت',
+    label: 'هنر و ساختن',
     emoji: '🎨',
     gradient: 'from-fuchsia-500 to-purple-700',
     tint: 'bg-fuchsia-50',
@@ -214,7 +214,7 @@ export const BROAD_INTERESTS: BroadInterest[] = [
   },
   {
     id: 'civic_social',
-    label: 'فعالیت اجتماعی و مدنی',
+    label: 'دورهمی و ارتباط',
     emoji: '🤝',
     gradient: 'from-sky-400 to-blue-600',
     tint: 'bg-sky-50',
@@ -301,6 +301,54 @@ export function resolveBroadToCategoryIds(
     }
   }
   return ids;
+}
+
+/** Normalize DB category names (emoji prefixes, casing, punctuation). */
+export function normalizeCategoryName(name: string | null | undefined): string {
+  if (!name) return '';
+  return name
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+const CATEGORY_ALIASES: Record<string, string> = {
+  'coffee social clubs': 'Coffee Socials',
+  'coffee socials': 'Coffee Socials',
+  'coffee social': 'Coffee Socials',
+};
+
+/** Canonical English interest name used in BROAD_INTERESTS.specifics */
+export function canonicalCategoryName(name: string | null | undefined): string {
+  const raw = (name || '').trim();
+  if (!raw) return '';
+  const key = normalizeCategoryName(raw);
+  if (CATEGORY_ALIASES[key]) return CATEGORY_ALIASES[key];
+  for (const broad of BROAD_INTERESTS) {
+    const hit = broad.specifics.find((s) => normalizeCategoryName(s) === key);
+    if (hit) return hit;
+    for (const g of broad.groups ?? []) {
+      const gHit = g.specifics.find((s) => normalizeCategoryName(s) === key);
+      if (gHit) return gHit;
+    }
+  }
+  return raw;
+}
+
+/** Map a leaf interest category name → its broad (primary) interest, if any. */
+export function broadInterestForCategoryName(
+  categoryName: string | null | undefined,
+): BroadInterest | null {
+  const canonical = canonicalCategoryName(categoryName);
+  if (!canonical) return null;
+  return (
+    BROAD_INTERESTS.find((b) => b.specifics.includes(canonical)) ??
+    BROAD_INTERESTS.find((b) =>
+      b.groups?.some((g) => g.specifics.includes(canonical)),
+    ) ??
+    null
+  );
 }
 
 /** Reverse: DB high-priority category ids → broad option ids. */
