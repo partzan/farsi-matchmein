@@ -64,25 +64,40 @@ serve(async (req) => {
     const prompt = buildPrompt(body);
 
     const provider = (Deno.env.get("IMAGE_GENERATOR_PROVIDER") || "openai").toLowerCase();
-    const apiKey = Deno.env.get("IMAGE_GENERATOR_API_KEY") ||
+    const apiKey =
+      Deno.env.get("IMAGE_GENERATOR_API_KEY") ||
+      Deno.env.get("OPENROUTER_API_KEY") ||
       Deno.env.get("OPENAI_API_KEY");
     if (!apiKey) throw new Error("IMAGE_GENERATOR_API_KEY is not configured");
 
     let imageBase64: string | null = null;
     let mime = "image/png";
 
-    if (provider === "openai" || provider === "dalle") {
-      const model = Deno.env.get("IMAGE_GENERATOR_MODEL") || "dall-e-3";
+    if (provider === "openai" || provider === "dalle" || provider === "openrouter") {
+      const model =
+        Deno.env.get("IMAGE_GENERATOR_MODEL") ||
+        (provider === "openrouter" ? "openai/dall-e-3" : "dall-e-3");
       const apiUrl =
         Deno.env.get("IMAGE_GENERATOR_API_URL") ||
-        "https://api.openai.com/v1/images/generations";
+        (provider === "openrouter"
+          ? "https://openrouter.ai/api/v1/images/generations"
+          : "https://api.openai.com/v1/images/generations");
+
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      };
+      if (provider === "openrouter") {
+        // OpenRouter optionally uses these; harmless if unset
+        const referer = Deno.env.get("IMAGE_GENERATOR_HTTP_REFERER");
+        const title = Deno.env.get("IMAGE_GENERATOR_APP_TITLE");
+        if (referer) headers["HTTP-Referer"] = referer;
+        if (title) headers["X-Title"] = title;
+      }
 
       const response = await fetch(apiUrl, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           model,
           prompt,

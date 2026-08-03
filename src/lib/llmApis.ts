@@ -12,7 +12,7 @@ export type LlmApiEntry = {
   name: string;
   /** Supabase Edge Function name that proxies the provider */
   edgeFunction: string;
-  /** Optional public flag — UI can hide generate when false */
+  /** Optional public flag — disables Generate only; upload UI stays visible */
   clientEnabledEnv?: string;
 };
 
@@ -29,7 +29,7 @@ export function isLlmApiEnabled(id: LlmApiId): boolean {
   const entry = LLM_APIS[id];
   if (!entry.clientEnabledEnv) return true;
   const raw = import.meta.env[entry.clientEnabledEnv] as string | undefined;
-  // Opt-in: unset/empty = disabled (upload still works without generator)
+  // Opt-in Generate only: unset/empty = Generate off (image upload section still renders)
   if (raw == null || String(raw).trim() === '') return false;
   return /^(1|true|yes|on)$/i.test(String(raw).trim());
 }
