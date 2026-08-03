@@ -104,15 +104,13 @@ export function Events() {
       const { data, error } = await supabase
         .from('events')
         .select(`
-          id, title, pitch, datetime, max_attendees, targeted_interest_ids, gender_restriction,
+          id, title, pitch, datetime, max_attendees, targeted_interest_ids, gender_restriction, status,
           category:interest_categories(id, name),
           host:users!events_host_id_fkey(display_name, is_verified),
           rsvps:event_rsvps(count),
-          event_matches!inner (match_tier)
+          event_matches (match_tier, user_id, is_active)
         `)
-        .eq('event_matches.user_id', session.user.id)
-        .eq('event_matches.is_active', true)
-        .neq('status', 'voting')
+        .eq('status', 'available')
         .gte('datetime', new Date().toISOString())
         .order('datetime', { ascending: true });
 
@@ -135,11 +133,18 @@ export function Events() {
 
         let processedEvents = (data as any[])
           .filter(e => !e.gender_restriction || e.gender_restriction === 'everyone' || e.gender_restriction === profile?.gender + '_only')
-          .map(e => ({
-            ...e,
-            isHighMatch: (e as any).event_matches && (e as any).event_matches.length > 0 && (e as any).event_matches[0].match_tier === 'high',
-            isPreferredTime: isPreferredTime(e.datetime)
-          }));
+          .map(e => {
+            const myMatches = Array.isArray(e.event_matches)
+              ? e.event_matches.filter(
+                  (m: any) => m.user_id === session.user.id && m.is_active,
+                )
+              : [];
+            return {
+              ...e,
+              isHighMatch: myMatches.some((m: any) => m.match_tier === 'high'),
+              isPreferredTime: isPreferredTime(e.datetime),
+            };
+          });
         
         processedEvents.sort((a, b) => {
           if (a.isHighMatch && !b.isHighMatch) return -1;

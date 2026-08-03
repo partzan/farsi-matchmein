@@ -242,10 +242,13 @@ export function categoriesForNames(
   names: string[],
   categories: Category[]
 ): Category[] {
-  const wanted = new Set(names);
-  return categories.filter(
-    (c) => wanted.has(c.name) && isAllowedInterestName(c.name)
-  );
+  const wanted = new Set(names.map((n) => normalizeCategoryName(n)));
+  return categories.filter((c) => {
+    if (!isAllowedInterestName(canonicalCategoryName(c.name) || c.name)) return false;
+    const key = normalizeCategoryName(canonicalCategoryName(c.name));
+    const raw = normalizeCategoryName(c.name);
+    return wanted.has(key) || wanted.has(raw);
+  });
 }
 
 /** Section-2 accordion rows (splits combined mains via `groups`). */
@@ -317,6 +320,13 @@ const CATEGORY_ALIASES: Record<string, string> = {
   'coffee social clubs': 'Coffee Socials',
   'coffee socials': 'Coffee Socials',
   'coffee social': 'Coffee Socials',
+  'local meetup': 'Local Meetups',
+  'local meetups': 'Local Meetups',
+  'community services': 'Community Service',
+  'charity event': 'Charity Events',
+  'charity events': 'Charity Events',
+  volunteer: 'Volunteering',
+  volunteering: 'Volunteering',
 };
 
 /** Canonical English interest name used in BROAD_INTERESTS.specifics */
