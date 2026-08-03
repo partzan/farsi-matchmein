@@ -12,7 +12,7 @@ import { searchCities, type CityOption } from '../lib/cities';
 import { uploadEventImage, uploadEventImageFromDataUrl } from '../lib/eventImages';
 import { iconsForEventSelection } from '../lib/eventIcons';
 import { VOTING_ENABLED } from '../lib/features';
-import { getLlmApi, isLlmApiEnabled } from '../lib/llmApis';
+import { getLlmApi, isLlmApiEnabled, readEdgeFunctionError } from '../lib/llmApis';
 import { supabase } from '../lib/supabase';
 import { categoryFa } from '../locale/categoriesFa';
 import { fa } from '../locale/fa';
@@ -253,8 +253,12 @@ export function CreateEvent() {
           },
         },
       );
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
+      if (fnError) {
+        throw new Error(
+          await readEdgeFunctionError(fnError, fa.createEvent.imageGenerateFailed),
+        );
+      }
+      if (data?.error) throw new Error(String(data.error));
       const dataUrl = data?.image_data_url as string | undefined;
       if (!dataUrl) throw new Error(fa.createEvent.imageGenerateFailed);
 
@@ -264,9 +268,11 @@ export function CreateEvent() {
       setPendingPreviewUrl(dataUrl);
       setApprovedImageUrl(null);
       setImagePhase('preview');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err?.message || fa.createEvent.imageGenerateFailed);
+      const message =
+        err instanceof Error ? err.message : fa.createEvent.imageGenerateFailed;
+      setError(message || fa.createEvent.imageGenerateFailed);
     } finally {
       setImageBusy(false);
     }

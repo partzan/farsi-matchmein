@@ -1,3 +1,5 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
+
 /**
  * Client-safe catalog of LLM / AI integrations used by the platform.
  * Secrets never live here — they are Edge Function env secrets.
@@ -36,4 +38,25 @@ export function isLlmApiEnabled(id: LlmApiId): boolean {
 
 export function getLlmApi(id: LlmApiId): LlmApiEntry {
   return LLM_APIS[id];
+}
+
+/** Prefer edge `{ error }` / `{ message }` over generic non-2xx text. */
+export async function readEdgeFunctionError(
+  error: unknown,
+  fallback: string,
+): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.json();
+      if (body?.error) return String(body.error);
+      if (body?.message) return String(body.message);
+    } catch {
+      /* ignore parse errors */
+    }
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = String((error as { message: string }).message);
+    if (msg && !msg.includes('non-2xx')) return msg;
+  }
+  return fallback;
 }
