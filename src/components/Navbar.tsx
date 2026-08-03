@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
@@ -8,18 +8,33 @@ import { fa } from '../locale/fa';
 import { BrandLogo } from './BrandLogo';
 import { loginUrl } from '../lib/auth';
 
-const linkClass =
-  'px-3 py-1.5 rounded-full text-sm font-semibold text-foreground/70 hover:text-primary hover:bg-primary-light/70 transition-colors';
-const linkStrong =
-  'px-3 py-1.5 rounded-full text-sm font-semibold text-primary hover:bg-primary-light/70 transition-colors';
-const mobileLink =
-  'block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary';
+const desktopBase =
+  'px-3 py-1.5 rounded-full text-sm font-semibold transition-colors';
+const desktopInactive =
+  `${desktopBase} text-foreground/70 hover:text-primary hover:bg-primary-light/70`;
+const desktopActive = `${desktopBase} text-primary bg-primary-light/70`;
+
+const mobileBase = 'block rounded-xl px-3 py-3 text-base font-semibold transition-colors';
+const mobileInactive = `${mobileBase} text-foreground/80 hover:bg-primary-light hover:text-primary`;
+const mobileActive = `${mobileBase} text-primary bg-primary-light`;
+
+function desktopNavClass(isActive: boolean) {
+  return isActive ? desktopActive : desktopInactive;
+}
+
+function mobileNavClass(isActive: boolean) {
+  return isActive ? mobileActive : mobileInactive;
+}
 
 export function Navbar() {
+  const { pathname } = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [userRank, setUserRank] = useState<string>('user');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [compact, setCompact] = useState(false);
+
+  const adminActive = pathname.startsWith('/admin');
+  const loginActive = pathname === '/login';
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -47,6 +62,10 @@ export function Navbar() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const fetchUserRank = async (userId: string) => {
     const { data } = await supabase.from('users').select('rank').eq('id', userId).single();
@@ -95,50 +114,59 @@ export function Navbar() {
           >
             {user ? (
               <>
-                <Link to="/profile" className={linkClass}>
+                <NavLink to="/profile" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.profile}
-                </Link>
-                <Link to="/events" className={linkStrong}>
+                </NavLink>
+                <NavLink to="/events" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.events}
-                </Link>
-                <Link to="/my-events" className={linkClass}>
+                </NavLink>
+                <NavLink to="/my-events" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.myEvents}
-                </Link>
-                <Link to="/archive" className={linkClass}>
+                </NavLink>
+                <NavLink to="/archive" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.archive}
-                </Link>
-                <Link to="/about" className={linkClass}>
+                </NavLink>
+                <NavLink to="/about" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.about}
-                </Link>
+                </NavLink>
                 {canAccessAdmin(user.email, userRank) && (
-                  <Link to="/admin/events" className={linkClass}>
+                  <NavLink
+                    to="/admin/events"
+                    className={() => desktopNavClass(adminActive)}
+                    aria-current={adminActive ? 'page' : undefined}
+                  >
                     {fa.nav.adminEvents}
-                  </Link>
+                  </NavLink>
                 )}
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className={`${linkClass} text-accent-red hover:bg-accent-red/10 hover:text-accent-red`}
+                  className={`${desktopInactive} text-accent-red hover:bg-accent-red/10 hover:text-accent-red`}
                 >
                   {fa.nav.logout}
                 </button>
               </>
             ) : (
               <>
-                <Link to="/archive" className={linkClass}>
+                <NavLink to="/archive" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.archive}
-                </Link>
-                <Link to="/about" className={linkClass}>
+                </NavLink>
+                <NavLink to="/about" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.about}
-                </Link>
-                <Link
+                </NavLink>
+                <NavLink
                   to={loginUrl()}
-                  className={`rounded-full bg-primary font-bold text-white transition-all hover:bg-primary-dark ${
+                  className={`rounded-full font-bold transition-all ${
                     compact ? 'px-3.5 py-1.5 text-xs' : 'px-4 py-1.5 text-sm'
+                  } ${
+                    loginActive
+                      ? 'bg-primary-dark text-white ring-2 ring-primary/40 ring-offset-2'
+                      : 'bg-primary text-white hover:bg-primary-dark'
                   }`}
+                  aria-current={loginActive ? 'page' : undefined}
                 >
                   {fa.nav.loginSignup}
-                </Link>
+                </NavLink>
               </>
             )}
           </div>
@@ -161,29 +189,55 @@ export function Navbar() {
             <div className="space-y-1 px-3 py-3 text-start">
               {user ? (
                 <>
-                  <Link to="/profile" onClick={closeMobile} className={mobileLink}>
-                    {fa.nav.profile}
-                  </Link>
-                  <Link
-                    to="/events"
+                  <NavLink
+                    to="/profile"
+                    end
                     onClick={closeMobile}
-                    className="block rounded-xl px-3 py-3 text-base font-semibold text-primary hover:bg-primary-light"
+                    className={({ isActive }) => mobileNavClass(isActive)}
+                  >
+                    {fa.nav.profile}
+                  </NavLink>
+                  <NavLink
+                    to="/events"
+                    end
+                    onClick={closeMobile}
+                    className={({ isActive }) => mobileNavClass(isActive)}
                   >
                     {fa.nav.events}
-                  </Link>
-                  <Link to="/my-events" onClick={closeMobile} className={mobileLink}>
+                  </NavLink>
+                  <NavLink
+                    to="/my-events"
+                    end
+                    onClick={closeMobile}
+                    className={({ isActive }) => mobileNavClass(isActive)}
+                  >
                     {fa.nav.myEvents}
-                  </Link>
-                  <Link to="/archive" onClick={closeMobile} className={mobileLink}>
+                  </NavLink>
+                  <NavLink
+                    to="/archive"
+                    end
+                    onClick={closeMobile}
+                    className={({ isActive }) => mobileNavClass(isActive)}
+                  >
                     {fa.nav.archive}
-                  </Link>
-                  <Link to="/about" onClick={closeMobile} className={mobileLink}>
+                  </NavLink>
+                  <NavLink
+                    to="/about"
+                    end
+                    onClick={closeMobile}
+                    className={({ isActive }) => mobileNavClass(isActive)}
+                  >
                     {fa.nav.about}
-                  </Link>
+                  </NavLink>
                   {canAccessAdmin(user.email, userRank) && (
-                    <Link to="/admin/events" onClick={closeMobile} className={mobileLink}>
+                    <NavLink
+                      to="/admin/events"
+                      onClick={closeMobile}
+                      className={() => mobileNavClass(adminActive)}
+                      aria-current={adminActive ? 'page' : undefined}
+                    >
                       {fa.nav.adminEvents}
-                    </Link>
+                    </NavLink>
                   )}
                   <button
                     type="button"
@@ -195,19 +249,32 @@ export function Navbar() {
                 </>
               ) : (
                 <>
-                  <Link to="/archive" onClick={closeMobile} className={mobileLink}>
+                  <NavLink
+                    to="/archive"
+                    end
+                    onClick={closeMobile}
+                    className={({ isActive }) => mobileNavClass(isActive)}
+                  >
                     {fa.nav.archive}
-                  </Link>
-                  <Link to="/about" onClick={closeMobile} className={mobileLink}>
+                  </NavLink>
+                  <NavLink
+                    to="/about"
+                    end
+                    onClick={closeMobile}
+                    className={({ isActive }) => mobileNavClass(isActive)}
+                  >
                     {fa.nav.about}
-                  </Link>
-                  <Link
+                  </NavLink>
+                  <NavLink
                     to={loginUrl()}
                     onClick={closeMobile}
-                    className="mt-1 block w-full rounded-xl bg-primary px-4 py-3 text-center text-base font-bold text-white"
+                    className={`mt-1 block w-full rounded-xl px-4 py-3 text-center text-base font-bold text-white ${
+                      loginActive ? 'bg-primary-dark ring-2 ring-primary/40' : 'bg-primary'
+                    }`}
+                    aria-current={loginActive ? 'page' : undefined}
                   >
                     {fa.nav.loginSignup}
-                  </Link>
+                  </NavLink>
                 </>
               )}
             </div>
