@@ -112,6 +112,7 @@ export const fa = {
     changePhone: 'تغییر شماره',
     noAccount: 'حساب نداری؟',
     createAccountLink: 'ساخت حساب',
+    signUp: 'ثبت نام',
     hasAccount: 'قبلاً ثبت‌نام کردی؟',
     loginLink: 'ورود',
     backHome: 'بازگشت به صفحه اصلی',

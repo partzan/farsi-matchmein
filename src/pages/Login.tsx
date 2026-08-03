@@ -125,35 +125,71 @@ export function Login() {
     navigate(postAuthPath, { replace: true });
   };
 
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError(null);
+    setInfo(null);
+  };
+
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-10" dir="rtl">
-      <div className="mb-8 flex flex-col items-center text-center">
-        <BrandLogo size="lg" />
-        <h1 className="mt-6 text-2xl font-black text-foreground">
+    <div
+      className="mx-auto flex h-full max-w-md flex-col justify-center px-4 py-3 sm:py-5"
+      dir="rtl"
+    >
+      <div className="mb-2 flex flex-col items-center text-center sm:mb-4">
+        <BrandLogo size="sm" className="sm:h-9" />
+        <h1 className="mt-2 text-lg font-black text-foreground sm:mt-3 sm:text-2xl">
           {mode === 'signup' ? fa.login.signupTitle : fa.login.title}
         </h1>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-0.5 text-xs text-muted sm:mt-1.5 sm:text-sm">
           {mode === 'signup' ? fa.login.emailSignupSubtitle : fa.login.emailSubtitle}
         </p>
       </div>
 
-      <div className="rounded-3xl border border-border bg-white p-6 shadow-sm sm:p-8">
+      <div className="rounded-2xl border border-border bg-white p-4 shadow-sm sm:rounded-3xl sm:p-6">
         {error && (
-          <p className="mb-4 rounded-xl bg-accent-red/10 px-3 py-2 text-sm font-semibold text-accent-red">
+          <p className="mb-3 rounded-xl bg-accent-red/10 px-3 py-2 text-xs font-semibold text-accent-red sm:mb-4 sm:text-sm">
             {error}
           </p>
         )}
         {info && (
-          <p className="mb-4 rounded-xl bg-accent-cyan/10 px-3 py-2 text-sm font-semibold text-primary">
+          <p className="mb-3 rounded-xl bg-accent-cyan/10 px-3 py-2 text-xs font-semibold text-primary sm:mb-4 sm:text-sm">
             {info}
           </p>
         )}
 
         {!showGuest ? (
           <>
-            <form onSubmit={submitEmail} className="space-y-4">
+            <div className="mb-3 grid grid-cols-2 gap-2 sm:mb-4">
+              <button
+                type="button"
+                onClick={() => switchMode('signup')}
+                aria-pressed={mode === 'signup'}
+                className={`rounded-2xl px-3 py-2.5 text-sm font-black transition sm:py-3 sm:text-base ${
+                  mode === 'signup'
+                    ? 'bg-gradient-to-l from-accent-orange to-accent-red text-white shadow-md shadow-accent-red/25 ring-2 ring-accent-orange/40'
+                    : 'bg-gradient-to-l from-accent-orange to-accent-red text-white shadow-md shadow-accent-red/20 hover:opacity-95'
+                }`}
+              >
+                {fa.login.signUp}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                aria-pressed={mode === 'login'}
+                className={`rounded-2xl border px-3 py-2.5 text-sm font-bold transition sm:py-3 sm:text-base ${
+                  mode === 'login'
+                    ? 'border-primary bg-primary-light/50 text-primary'
+                    : 'border-border bg-background text-muted hover:border-primary/40 hover:text-foreground'
+                }`}
+              >
+                {fa.login.loginBtn}
+              </button>
+            </div>
+
+            <form onSubmit={submitEmail} className="space-y-2.5 sm:space-y-3.5">
               <div>
-                <label className="mb-2 block text-sm font-bold text-foreground">
+                <label className="mb-1 block text-xs font-bold text-foreground sm:mb-1.5 sm:text-sm">
                   {fa.login.emailLabel}
                 </label>
                 <input
@@ -162,14 +198,14 @@ export function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary sm:px-4 sm:py-3 sm:text-base"
                   dir="ltr"
                   autoFocus
                   required
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-bold text-foreground">
+                <label className="mb-1 block text-xs font-bold text-foreground sm:mb-1.5 sm:text-sm">
                   {fa.login.passwordLabel}
                 </label>
                 <input
@@ -178,7 +214,7 @@ export function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary sm:px-4 sm:py-3 sm:text-base"
                   dir="ltr"
                   required
                   minLength={6}
@@ -187,7 +223,11 @@ export function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-2xl bg-gradient-to-l from-primary via-primary-mid to-accent-purple px-4 py-3.5 text-base font-bold text-white shadow-md transition hover:opacity-95 disabled:opacity-60"
+                className={`w-full rounded-2xl px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:opacity-95 disabled:opacity-60 sm:py-3.5 sm:text-base ${
+                  mode === 'signup'
+                    ? 'bg-gradient-to-l from-accent-orange to-accent-red'
+                    : 'bg-gradient-to-l from-primary via-primary-mid to-accent-purple'
+                }`}
               >
                 {loading
                   ? fa.login.emailWorking
@@ -197,16 +237,16 @@ export function Login() {
               </button>
             </form>
 
-            <div className="my-5 flex items-center gap-3">
+            <div className="my-3 flex items-center gap-3 sm:my-4">
               <div className="h-px flex-1 bg-border" />
-              <span className="text-xs font-bold text-muted">{fa.signup.or}</span>
+              <span className="text-[11px] font-bold text-muted sm:text-xs">{fa.signup.or}</span>
               <div className="h-px flex-1 bg-border" />
             </div>
 
             <button
               type="button"
               onClick={handleGoogle}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-border bg-white px-4 py-3.5 text-base font-bold text-foreground transition hover:border-primary hover:bg-primary-light/40"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-border bg-white px-4 py-2.5 text-sm font-bold text-foreground transition hover:border-primary hover:bg-primary-light/40 sm:py-3.5 sm:text-base"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
                 <path
@@ -235,52 +275,20 @@ export function Login() {
                 setShowGuest(true);
                 setError(null);
               }}
-              className="mt-3 w-full rounded-2xl border border-border px-4 py-3 text-sm font-bold text-muted transition hover:bg-background hover:text-foreground"
+              className="mt-2 w-full rounded-2xl border border-border px-4 py-2 text-xs font-bold text-muted transition hover:bg-background hover:text-foreground sm:mt-3 sm:py-2.5 sm:text-sm"
             >
               {fa.nav.continueGuest}
             </button>
-
-            <div className="mt-6 border-t border-border pt-5 text-center text-sm">
-              {mode === 'login' ? (
-                <p className="text-muted">
-                  {fa.login.noAccount}{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('signup');
-                      setError(null);
-                    }}
-                    className="font-bold text-primary hover:text-accent-purple"
-                  >
-                    {fa.login.createAccountLink}
-                  </button>
-                </p>
-              ) : (
-                <p className="text-muted">
-                  {fa.login.hasAccount}{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('login');
-                      setError(null);
-                    }}
-                    className="font-bold text-primary"
-                  >
-                    {fa.login.loginLink}
-                  </button>
-                </p>
-              )}
-            </div>
           </>
         ) : (
-          <form onSubmit={handleGuest} className="space-y-4">
-            <p className="text-sm text-muted">{fa.nav.guestUsername}</p>
+          <form onSubmit={handleGuest} className="space-y-3">
+            <p className="text-xs text-muted sm:text-sm">{fa.nav.guestUsername}</p>
             <input
               type="text"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
               placeholder={fa.nav.guestPlaceholder}
-              className="w-full rounded-xl border border-border bg-background px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary sm:px-4 sm:py-3 sm:text-base"
               dir="rtl"
               autoFocus
               required
@@ -288,7 +296,7 @@ export function Login() {
             <button
               type="submit"
               disabled={loading || !guestName.trim()}
-              className="w-full rounded-2xl bg-gradient-to-l from-accent-orange to-accent-red px-4 py-3.5 text-base font-bold text-white disabled:opacity-50"
+              className="w-full rounded-2xl bg-gradient-to-l from-accent-orange to-accent-red px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:py-3.5 sm:text-base"
             >
               {loading ? fa.login.emailWorking : fa.nav.loginAsGuest}
             </button>
@@ -306,7 +314,7 @@ export function Login() {
         )}
       </div>
 
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="mt-2 text-center text-xs text-muted sm:mt-4 sm:text-sm">
         <Link to="/" className="font-semibold text-primary hover:text-accent-purple">
           {fa.login.backHome}
         </Link>
