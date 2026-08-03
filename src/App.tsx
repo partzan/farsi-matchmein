@@ -1,8 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
 import { Events } from './pages/Events';
+import { Archive } from './pages/Archive';
 import { CreateEvent } from './pages/CreateEvent';
 import { Profile } from './pages/Profile';
 import { ProfileSetup } from './pages/ProfileSetup';
@@ -26,6 +27,8 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/archive" element={<Archive />} />
+            <Route path="/discover" element={<Navigate to="/events" replace />} />
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/create-event" element={<CreateEvent />} />
             <Route path="/event/:id" element={<EventDetail />} />

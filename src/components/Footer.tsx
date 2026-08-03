@@ -32,6 +32,9 @@ export function Footer() {
               <Link to="/events" className={linkClass}>
                 {fa.footer.events}
               </Link>
+              <Link to="/archive" className={linkClass}>
+                {fa.footer.archive}
+              </Link>
               <Link to="/about" className={linkClass}>
                 {fa.footer.about}
               </Link>

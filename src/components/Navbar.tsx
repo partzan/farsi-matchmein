@@ -6,12 +6,14 @@ import type { User } from '@supabase/supabase-js';
 import { canAccessAdmin } from '../lib/admin';
 import { fa } from '../locale/fa';
 import { BrandLogo } from './BrandLogo';
-import { loginUrl, signInWithGoogle } from '../lib/auth';
+import { loginUrl } from '../lib/auth';
 
 const linkClass =
   'px-3 py-1.5 rounded-full text-sm font-semibold text-foreground/70 hover:text-primary hover:bg-primary-light/70 transition-colors';
 const linkStrong =
   'px-3 py-1.5 rounded-full text-sm font-semibold text-primary hover:bg-primary-light/70 transition-colors';
+const mobileLink =
+  'block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary';
 
 export function Navbar() {
   const [user, setUser] = useState<User | null>(null);
@@ -56,6 +58,8 @@ export function Navbar() {
     setIsMobileMenuOpen(false);
   };
 
+  const closeMobile = () => setIsMobileMenuOpen(false);
+
   return (
     <header
       className="sticky top-0 z-50 flex justify-center px-3 pt-3 sm:px-4 sm:pt-4"
@@ -79,7 +83,7 @@ export function Navbar() {
             className={`flex shrink-0 items-center transition-transform duration-500 ${
               compact ? 'scale-90' : 'scale-100'
             }`}
-            onClick={() => setIsMobileMenuOpen(false)}
+            onClick={closeMobile}
           >
             <BrandLogo size={compact ? 'sm' : 'md'} />
           </div>
@@ -89,22 +93,28 @@ export function Navbar() {
               compact ? 'gap-0' : 'gap-1'
             }`}
           >
-            <Link to="/events" className={linkClass}>
-              {fa.nav.events}
-            </Link>
             {user ? (
               <>
-                <Link to="/my-events" className={linkStrong}>
+                <Link to="/profile" className={linkClass}>
+                  {fa.nav.profile}
+                </Link>
+                <Link to="/events" className={linkStrong}>
+                  {fa.nav.events}
+                </Link>
+                <Link to="/my-events" className={linkClass}>
                   {fa.nav.myEvents}
+                </Link>
+                <Link to="/archive" className={linkClass}>
+                  {fa.nav.archive}
+                </Link>
+                <Link to="/about" className={linkClass}>
+                  {fa.nav.about}
                 </Link>
                 {canAccessAdmin(user.email, userRank) && (
                   <Link to="/admin/events" className={linkClass}>
                     {fa.nav.adminEvents}
                   </Link>
                 )}
-                <Link to="/profile" className={linkClass}>
-                  {fa.nav.profile}
-                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
@@ -114,24 +124,22 @@ export function Navbar() {
                 </button>
               </>
             ) : (
-              <div className="flex items-center gap-1.5 ps-1">
-                <Link to="/profile" className={linkClass}>
-                  {fa.nav.profile}
+              <>
+                <Link to="/archive" className={linkClass}>
+                  {fa.nav.archive}
                 </Link>
-                {!compact && (
-                  <Link to="/login?mode=signup" className={linkClass}>
-                    {fa.login.createAccount}
-                  </Link>
-                )}
+                <Link to="/about" className={linkClass}>
+                  {fa.nav.about}
+                </Link>
                 <Link
-                  to="/login"
+                  to={loginUrl()}
                   className={`rounded-full bg-primary font-bold text-white transition-all hover:bg-primary-dark ${
                     compact ? 'px-3.5 py-1.5 text-xs' : 'px-4 py-1.5 text-sm'
                   }`}
                 >
-                  {fa.nav.login}
+                  {fa.nav.loginSignup}
                 </Link>
-              </div>
+              </>
             )}
           </div>
 
@@ -151,38 +159,32 @@ export function Navbar() {
         {isMobileMenuOpen && (
           <div className="absolute inset-x-0 top-[calc(100%+0.5rem)] z-40 overflow-hidden rounded-2xl border border-border/70 bg-white shadow-xl shadow-primary/10 sm:hidden">
             <div className="space-y-1 px-3 py-3 text-start">
-              <Link
-                to="/events"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary"
-              >
-                {fa.nav.events}
-              </Link>
               {user ? (
                 <>
+                  <Link to="/profile" onClick={closeMobile} className={mobileLink}>
+                    {fa.nav.profile}
+                  </Link>
                   <Link
-                    to="/my-events"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    to="/events"
+                    onClick={closeMobile}
                     className="block rounded-xl px-3 py-3 text-base font-semibold text-primary hover:bg-primary-light"
                   >
+                    {fa.nav.events}
+                  </Link>
+                  <Link to="/my-events" onClick={closeMobile} className={mobileLink}>
                     {fa.nav.myEvents}
                   </Link>
+                  <Link to="/archive" onClick={closeMobile} className={mobileLink}>
+                    {fa.nav.archive}
+                  </Link>
+                  <Link to="/about" onClick={closeMobile} className={mobileLink}>
+                    {fa.nav.about}
+                  </Link>
                   {canAccessAdmin(user.email, userRank) && (
-                    <Link
-                      to="/admin/events"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary"
-                    >
+                    <Link to="/admin/events" onClick={closeMobile} className={mobileLink}>
                       {fa.nav.adminEvents}
                     </Link>
                   )}
-                  <Link
-                    to="/profile"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary"
-                  >
-                    {fa.nav.profile}
-                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
@@ -192,39 +194,21 @@ export function Navbar() {
                   </button>
                 </>
               ) : (
-                <div className="space-y-2 pt-1">
-                  <Link
-                    to="/profile"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary"
-                  >
-                    {fa.nav.profile}
+                <>
+                  <Link to="/archive" onClick={closeMobile} className={mobileLink}>
+                    {fa.nav.archive}
                   </Link>
-                  <Link
-                    to={loginUrl({ mode: 'signup' })}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block w-full rounded-xl border border-border px-4 py-3 text-center text-base font-bold text-foreground transition-colors hover:bg-primary-light"
-                  >
-                    {fa.profileSetup.createNewAccount}
+                  <Link to="/about" onClick={closeMobile} className={mobileLink}>
+                    {fa.nav.about}
                   </Link>
                   <Link
                     to={loginUrl()}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block w-full rounded-xl bg-primary px-4 py-3 text-center text-base font-bold text-white"
+                    onClick={closeMobile}
+                    className="mt-1 block w-full rounded-xl bg-primary px-4 py-3 text-center text-base font-bold text-white"
                   >
-                    {fa.profileSetup.loginToAccount}
+                    {fa.nav.loginSignup}
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      signInWithGoogle('/events');
-                    }}
-                    className="w-full rounded-xl border border-border px-4 py-3 text-base font-bold text-foreground transition-colors hover:bg-primary-light"
-                  >
-                    {fa.nav.loginGoogle}
-                  </button>
-                </div>
+                </>
               )}
             </div>
           </div>

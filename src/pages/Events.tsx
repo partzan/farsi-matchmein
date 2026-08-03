@@ -24,7 +24,7 @@ type GenderFilter = 'all' | 'everyone' | 'female_only' | 'male_only';
 
 const PAGE_SIZE = 9;
 
-/** Browse upcoming events with filters (formerly Discover). */
+/** Browse active upcoming events with filters. */
 export function Events() {
   const voteTokens = useVoteTokens();
   const remaining = VOTING_ENABLED ? voteTokens.remaining : null;
