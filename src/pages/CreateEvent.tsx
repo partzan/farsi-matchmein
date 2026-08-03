@@ -37,6 +37,8 @@ export function CreateEvent() {
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('');
   const [date, setDate] = useState('');
+  const [time, setTime] = useState(DEFAULT_TIME);
+  const [ticketPrice, setTicketPrice] = useState('');
   const [cityQuery, setCityQuery] = useState('');
   const [city, setCity] = useState<CityOption | null>(null);
   const [cityOpen, setCityOpen] = useState(false);
@@ -150,7 +152,14 @@ export function CreateEvent() {
     (step === 2 && relatedIds.length >= 1) ||
     (step === 3 && !!title.trim() && !!description.trim()) ||
     (step === 4 && !!icon) ||
-    (step === 5 && !!date && !!city && !!eventType);
+    (step === 5 &&
+      !!date &&
+      !!time &&
+      !!city &&
+      ticketPrice.trim() !== '' &&
+      !Number.isNaN(Number(ticketPrice)) &&
+      Number(ticketPrice) >= 0 &&
+      !!eventType);
 
   const handleNext = () => {
     if (!canNext) {
@@ -194,7 +203,7 @@ export function CreateEvent() {
       }
 
       const status =
-        VOTING_ENABLED && eventType === 'voting' ? 'voting' : 'available';
+        VOTING_ENABLED && eventType === 'voting' ? 'voting' : 'active';
 
       const { data, error: insertError } = await supabase
         .from('events')
@@ -205,10 +214,11 @@ export function CreateEvent() {
           description: description.trim(),
           category_id: relatedIds[0],
           location: city.nameFa,
-          datetime: new Date(`${date}T${DEFAULT_TIME}`).toISOString(),
+          datetime: new Date(`${date}T${time || DEFAULT_TIME}`).toISOString(),
           targeted_interest_ids: relatedIds,
           gender_restriction: 'everyone',
           icon,
+          ticket_price: Number(ticketPrice),
           status,
         })
         .select()
@@ -416,6 +426,16 @@ export function CreateEvent() {
           <section className="space-y-6">
             <JalaliEventDatePicker value={date} onChange={setDate} />
 
+            <div>
+              <label className="mb-2 block text-sm font-bold">{fa.createEvent.timeLabel}</label>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
             <div ref={cityBoxRef} className="relative">
               <label className="mb-2 block text-sm font-bold">{fa.createEvent.cityLabel}</label>
               <p className="mb-2 text-sm text-muted">{fa.createEvent.cityHint}</p>
@@ -464,6 +484,25 @@ export function CreateEvent() {
               )}
             </div>
 
+            <div>
+              <label className="mb-2 block text-sm font-bold">{fa.createEvent.ticketPriceLabel}</label>
+              <p className="mb-2 text-sm text-muted">{fa.createEvent.ticketPriceHint}</p>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={0}
+                  step={1000}
+                  value={ticketPrice}
+                  onChange={(e) => setTicketPrice(e.target.value)}
+                  placeholder={fa.createEvent.ticketPricePlaceholder}
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 pe-16 focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <span className="pointer-events-none absolute end-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted">
+                  {fa.createEvent.ticketCurrency}
+                </span>
+              </div>
+            </div>
+
             {VOTING_ENABLED && (
               <div>
                 <h3 className="mb-2 text-sm font-bold text-foreground">{fa.createEvent.chooseType}</h3>
@@ -491,6 +530,13 @@ export function CreateEvent() {
                 {selectedBroad?.emoji} {selectedBroad?.label}
                 {relatedLabels.length > 0 ? ` · ${relatedLabels.join('، ')}` : ''}
                 {city ? ` · ${city.nameFa}` : ''}
+                {ticketPrice.trim() !== ''
+                  ? ` · ${
+                      Number(ticketPrice) === 0
+                        ? fa.createEvent.ticketFree
+                        : `${Number(ticketPrice).toLocaleString('fa-IR')} ${fa.createEvent.ticketCurrency}`
+                    }`
+                  : ''}
               </p>
             </div>
           </section>

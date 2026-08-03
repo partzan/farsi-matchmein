@@ -66,7 +66,9 @@ function toEditForm(event: AdminEvent): EditForm {
     time: dt ? `${pad(dt.getHours())}:${pad(dt.getMinutes())}` : '',
     max_attendees: event.max_attendees != null ? String(event.max_attendees) : '',
     gender_restriction: event.gender_restriction || 'everyone',
-    status: event.status || 'voting',
+    status: event.status === 'active' || event.status === 'completed' || event.status === 'cancelled' || event.status === 'voting'
+      ? event.status
+      : 'active',
     ticket_price: event.ticket_price != null ? String(event.ticket_price) : '',
     icon: event.icon || EVENT_ICONS[0],
   };
@@ -105,7 +107,7 @@ export function AdminEvents() {
 
     const rows = (events || []) as unknown as AdminEvent[];
     setVoting(rows.filter((e) => !e.status || e.status === 'voting'));
-    setAvailable(rows.filter((e) => e.status && e.status !== 'voting'));
+    setAvailable(rows.filter((e) => e.status === 'active' || e.status === 'completed'));
   }, []);
 
   useEffect(() => {
@@ -463,7 +465,7 @@ export function AdminEvents() {
                 </label>
                 <label className="block">
                   <span className="mb-1.5 block text-sm font-bold text-gray-700">
-                    {fa.adminEvents.colTicketPrice}
+                    {fa.createEvent.ticketPriceLabel}
                   </span>
                   <input
                     type="number"
@@ -477,6 +479,21 @@ export function AdminEvents() {
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
+                  <span className="mb-1.5 block text-sm font-bold text-gray-700">وضعیت</span>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value })}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="active">{fa.adminEvents.tabAvailable}</option>
+                    {VOTING_ENABLED && (
+                      <option value="voting">{fa.adminEvents.tabVoting}</option>
+                    )}
+                    <option value="completed">برگزار شده</option>
+                    <option value="cancelled">لغو شده</option>
+                  </select>
+                </label>
+                <label className="block">
                   <span className="mb-1.5 block text-sm font-bold text-gray-700">
                     {fa.createEvent.genderRestriction}
                   </span>
@@ -488,21 +505,6 @@ export function AdminEvents() {
                     <option value="everyone">{fa.adminEvents.genderEveryone}</option>
                     <option value="male_only">{fa.adminEvents.genderMen}</option>
                     <option value="female_only">{fa.adminEvents.genderWomen}</option>
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-bold text-gray-700">وضعیت</span>
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm({ ...form, status: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-primary"
-                  >
-                    <option value="available">{fa.adminEvents.tabAvailable}</option>
-                    {VOTING_ENABLED && (
-                      <option value="voting">{fa.adminEvents.tabVoting}</option>
-                    )}
-                    <option value="completed">برگزار شده</option>
-                    <option value="cancelled">لغو شده</option>
                   </select>
                 </label>
               </div>

@@ -223,6 +223,7 @@ alter table event_rsvps add column if not exists created_at timestamp with time 
 alter table events add column if not exists targeted_interest_ids uuid[] default null;
 alter table events add column if not exists pitch text;
 alter table events add column if not exists icon text;
+alter table events add column if not exists ticket_price numeric;
 
 -- Users updates
 alter table users add column if not exists is_verified boolean default false;

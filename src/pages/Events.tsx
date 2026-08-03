@@ -122,7 +122,7 @@ export function Events() {
           rsvps:event_rsvps(count),
           event_matches (match_tier, user_id, is_active)
         `)
-        .eq('status', 'available')
+        .eq('status', 'active')
         .gte('datetime', new Date().toISOString())
         .order('datetime', { ascending: true });
 
