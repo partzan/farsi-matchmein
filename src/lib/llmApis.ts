@@ -29,9 +29,9 @@ export function isLlmApiEnabled(id: LlmApiId): boolean {
   const entry = LLM_APIS[id];
   if (!entry.clientEnabledEnv) return true;
   const raw = import.meta.env[entry.clientEnabledEnv] as string | undefined;
-  // Opt-in Generate only: unset/empty = Generate off (image upload section still renders)
-  if (raw == null || String(raw).trim() === '') return false;
-  return /^(1|true|yes|on)$/i.test(String(raw).trim());
+  // Opt-out: unset/empty = Generate on; set false/0/off/no to hide Generate (upload stays)
+  if (raw == null || String(raw).trim() === '') return true;
+  return !/^(0|false|no|off)$/i.test(String(raw).trim());
 }
 
 export function getLlmApi(id: LlmApiId): LlmApiEntry {

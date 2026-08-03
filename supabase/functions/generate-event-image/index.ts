@@ -88,11 +88,11 @@ serve(async (req) => {
         "Content-Type": "application/json",
       };
       if (provider === "openrouter") {
-        // OpenRouter optionally uses these; harmless if unset
-        const referer = Deno.env.get("IMAGE_GENERATOR_HTTP_REFERER");
-        const title = Deno.env.get("IMAGE_GENERATOR_APP_TITLE");
-        if (referer) headers["HTTP-Referer"] = referer;
-        if (title) headers["X-Title"] = title;
+        // OpenRouter ranks apps that send these; defaults keep production reliable
+        headers["HTTP-Referer"] =
+          Deno.env.get("IMAGE_GENERATOR_HTTP_REFERER") || "https://www.r359.ir";
+        headers["X-Title"] =
+          Deno.env.get("IMAGE_GENERATOR_APP_TITLE") || "HiEvent";
       }
 
       const response = await fetch(apiUrl, {
