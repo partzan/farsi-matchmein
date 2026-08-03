@@ -6,8 +6,8 @@ import {
   jalaliFromIso,
   jalaliMonthLength,
   jalaliToGregorian,
-} from '../../lib/jalali';
-import { fa } from '../../locale/fa';
+} from '../lib/jalali';
+import { fa } from '../locale/fa';
 
 type JalaliEventDatePickerProps = {
   value: string; // YYYY-MM-DD gregorian ISO date
@@ -60,17 +60,17 @@ export function JalaliEventDatePicker({
   const goPrev = () => {
     if (!canPrev) return;
     if (viewMonth === 1) {
-      setViewYear((y) => y - 1);
+      setViewYear((y: number) => y - 1);
       setViewMonth(12);
-    } else setViewMonth((m) => m - 1);
+    } else setViewMonth((m: number) => m - 1);
   };
 
   const goNext = () => {
     if (!canNext) return;
     if (viewMonth === 12) {
-      setViewYear((y) => y + 1);
+      setViewYear((y: number) => y + 1);
       setViewMonth(1);
-    } else setViewMonth((m) => m + 1);
+    } else setViewMonth((m: number) => m + 1);
   };
 
   const isPastDay = (day: number) => {
@@ -129,7 +129,7 @@ export function JalaliEventDatePicker({
                 onChange={(e) => setViewMonth(Number(e.target.value))}
                 className="max-w-[7rem] truncate rounded-lg border border-border bg-background px-1.5 py-1.5 text-xs font-black text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                {months.map((name, i) => (
+                {months.map((name: string, i: number) => (
                   <option key={name} value={i + 1}>
                     {name}
                   </option>

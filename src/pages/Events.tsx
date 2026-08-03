@@ -85,11 +85,7 @@ export function Events() {
       if (session) {
         const { data: profile } = await supabase
           .from('users')
-          .select(
-            VOTING_ENABLED
-              ? 'preferred_time_slots, rank, vote_tokens, gender'
-              : 'preferred_time_slots, rank, gender',
-          )
+          .select('preferred_time_slots, rank, vote_tokens, gender')
           .eq('id', session.user.id)
           .single();
         if (profile?.preferred_time_slots) {
