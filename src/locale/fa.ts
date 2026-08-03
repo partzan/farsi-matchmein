@@ -736,6 +736,10 @@ export const fa = {
     imageChange: 'تغییر تصویر',
     imageNeedApprove: 'اول یک تصویر آپلود یا بساز و تأیید کن.',
     imageGenerateFailed: 'ساخت تصویر ناموفق بود.',
+    imageGenerateAuthError:
+      'نشست کاربری معتبر نیست. دوباره وارد شو و ساخت تصویر را تکرار کن.',
+    imageGenerateApiKeyError:
+      'کلید OpenRouter نامعتبر یا تنظیم نشده. در Supabase Edge Secrets مقدار IMAGE_GENERATOR_API_KEY را با کلید معتبر sk-or-v1-... دوباره تنظیم کن.',
     imageUploadFailed: 'آپلود تصویر ناموفق بود.',
     imageUploading: 'در حال آپلود تصویر...',
     imageGenerateDisabled: 'ساخت خودکار تصویر فعلاً فعال نیست. می‌تونی تصویر رو آپلود کنی.',

@@ -88,6 +88,18 @@ async function extractImageBase64(
   return { base64: null, mime };
 }
 
+function normalizeApiKey(raw: string): string {
+  // Secrets sometimes pasted as "Bearer sk-..." — avoid double Bearer
+  return raw.trim().replace(/^Bearer\s+/i, "").trim();
+}
+
+function jsonError(message: string, status: number) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -95,30 +107,64 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing Authorization header");
+    if (!authHeader) {
+      return jsonError(
+        "Supabase unauthorized: Missing Authorization header (sign in and retry)",
+        401,
+      );
+    }
+
+    const jwt = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!jwt) {
+      return jsonError(
+        "Supabase unauthorized: empty Bearer token (sign in and retry)",
+        401,
+      );
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnon = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
+      {
+        global: { headers: { Authorization: `Bearer ${jwt}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      },
     );
 
+    // Must pass JWT — getUser() without it ignores Authorization and always fails in Edge
     const {
       data: { user },
       error: authError,
-    } = await supabaseAnon.auth.getUser();
-    if (authError || !user) throw new Error("Unauthorized");
+    } = await supabaseAnon.auth.getUser(jwt);
+    if (authError || !user) {
+      console.error(
+        "generate-event-image supabase auth failed:",
+        authError?.message || "no user",
+      );
+      return jsonError(
+        `Supabase unauthorized: ${authError?.message || "invalid or expired session — sign in again"}`,
+        401,
+      );
+    }
 
     const body = (await req.json()) as Body;
     const prompt = buildPrompt(body);
 
     const provider = (Deno.env.get("IMAGE_GENERATOR_PROVIDER") || "openai").toLowerCase();
-    const apiKey =
+    const apiKeyRaw =
       Deno.env.get("IMAGE_GENERATOR_API_KEY") ||
       Deno.env.get("OPENROUTER_API_KEY") ||
       Deno.env.get("OPENAI_API_KEY");
-    if (!apiKey) throw new Error("IMAGE_GENERATOR_API_KEY is not configured");
+    if (!apiKeyRaw) {
+      throw new Error(
+        "IMAGE_GENERATOR_API_KEY is not configured (also checked OPENROUTER_API_KEY / OPENAI_API_KEY)",
+      );
+    }
+    const apiKey = normalizeApiKey(apiKeyRaw);
+    if (!apiKey) {
+      throw new Error("IMAGE_GENERATOR_API_KEY is empty after trim");
+    }
 
     let imageBase64: string | null = null;
     let mime = "image/png";
@@ -181,6 +227,15 @@ serve(async (req) => {
       if (!response.ok) {
         const errText = (await response.text()).slice(0, 800);
         console.error("Image API error", response.status, errText);
+        if (response.status === 401 || response.status === 403) {
+          const who = usingOpenRouter ? "OpenRouter" : "Image provider";
+          throw new Error(
+            `${who} unauthorized (${response.status}): invalid or missing API key. ` +
+              `Re-set IMAGE_GENERATOR_API_KEY (or OPENROUTER_API_KEY) in Supabase Edge secrets` +
+              (usingOpenRouter ? " with a valid sk-or-v1-... key." : ".") +
+              ` Details: ${errText}`,
+          );
+        }
         throw new Error(`Image API error (${response.status}): ${errText}`);
       }
 
@@ -205,6 +260,11 @@ serve(async (req) => {
       if (!response.ok) {
         const errText = (await response.text()).slice(0, 800);
         console.error("Image API error", response.status, errText);
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(
+            `Image provider unauthorized (${response.status}): invalid or missing IMAGE_GENERATOR_API_KEY. Details: ${errText}`,
+          );
+        }
         throw new Error(`Image API error (${response.status}): ${errText}`);
       }
 
@@ -226,9 +286,9 @@ serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("generate-event-image failed:", message);
-    return new Response(JSON.stringify({ error: message }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const status = /unauthorized|invalid or expired session|sign in/i.test(message)
+      ? 401
+      : 400;
+    return jsonError(message, status);
   }
 });

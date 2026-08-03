@@ -22,6 +22,23 @@ type Category = { id: string; name: string; emoji?: string; group_name?: string 
 type EventCreateType = 'publish' | 'voting';
 type ImagePhase = 'choose' | 'preview' | 'approved';
 
+/** Map edge auth / OpenRouter key failures to clear Persian copy. */
+function mapImageGenerateError(message: string): string {
+  const m = message.trim();
+  if (/^Unauthorized$/i.test(m) || /Supabase unauthorized/i.test(m)) {
+    return fa.createEvent.imageGenerateAuthError;
+  }
+  if (
+    /OpenRouter unauthorized/i.test(m) ||
+    /Image provider unauthorized/i.test(m) ||
+    /IMAGE_GENERATOR_API_KEY/i.test(m) ||
+    /OPENROUTER_API_KEY/i.test(m)
+  ) {
+    return fa.createEvent.imageGenerateApiKeyError;
+  }
+  return m || fa.createEvent.imageGenerateFailed;
+}
+
 const TOTAL_STEPS = 5;
 const RELATED_MAX = 3;
 const DEFAULT_TIME = '18:00';
@@ -235,12 +252,22 @@ export function CreateEvent() {
     setError(null);
     setImageBusy(true);
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error(fa.createEvent.mustLoginError);
+      }
+
       const related = relatedIds
         .map((id) => categoryFa(categories.find((c) => c.id === id)?.name))
         .filter(Boolean);
       const { data, error: fnError } = await supabase.functions.invoke(
         getLlmApi('image_generator').edgeFunction,
         {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
           body: {
             title: title.trim(),
             description: description.trim(),
@@ -255,10 +282,12 @@ export function CreateEvent() {
       );
       if (fnError) {
         throw new Error(
-          await readEdgeFunctionError(fnError, fa.createEvent.imageGenerateFailed),
+          mapImageGenerateError(
+            await readEdgeFunctionError(fnError, fa.createEvent.imageGenerateFailed),
+          ),
         );
       }
-      if (data?.error) throw new Error(String(data.error));
+      if (data?.error) throw new Error(mapImageGenerateError(String(data.error)));
       const dataUrl = data?.image_data_url as string | undefined;
       if (!dataUrl) throw new Error(fa.createEvent.imageGenerateFailed);
 
