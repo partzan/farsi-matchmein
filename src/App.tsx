@@ -10,7 +10,6 @@ import { Onboarding } from './pages/Onboarding';
 import { EventDetail } from './pages/EventDetail';
 import { MyEvents } from './pages/MyEvents';
 import { AdminEvents } from './pages/AdminEvents';
-import { Discover } from './pages/Discover';
 import { Login } from './pages/Login';
 import { About } from './pages/About';
 import { Contact } from './pages/Contact';
@@ -27,7 +26,6 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/events" element={<Events />} />
-            <Route path="/discover" element={<Discover />} />
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/create-event" element={<CreateEvent />} />
             <Route path="/event/:id" element={<EventDetail />} />

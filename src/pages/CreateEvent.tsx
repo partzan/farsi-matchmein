@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, MapPin } from 'lucide-react';
+import { Check, MapPin, ImagePlus, Sparkles, Upload } from 'lucide-react';
 import { canAccessAdmin, ensureAdministratorRank } from '../lib/admin';
 import {
   BROAD_INTERESTS,
@@ -9,8 +9,10 @@ import {
   type BroadInterest,
 } from '../lib/broadInterests';
 import { searchCities, type CityOption } from '../lib/cities';
+import { uploadEventImage, uploadEventImageFromDataUrl } from '../lib/eventImages';
 import { iconsForEventSelection } from '../lib/eventIcons';
 import { VOTING_ENABLED } from '../lib/features';
+import { getLlmApi, isLlmApiEnabled } from '../lib/llmApis';
 import { supabase } from '../lib/supabase';
 import { categoryFa } from '../locale/categoriesFa';
 import { fa } from '../locale/fa';
@@ -18,10 +20,12 @@ import { JalaliEventDatePicker } from '../components/JalaliEventDatePicker';
 
 type Category = { id: string; name: string; emoji?: string; group_name?: string };
 type EventCreateType = 'publish' | 'voting';
+type ImagePhase = 'choose' | 'preview' | 'approved';
 
 const TOTAL_STEPS = 5;
 const RELATED_MAX = 3;
 const DEFAULT_TIME = '18:00';
+const generateEnabled = isLlmApiEnabled('image_generator');
 
 export function CreateEvent() {
   const navigate = useNavigate();
@@ -45,7 +49,14 @@ export function CreateEvent() {
   const [eventType, setEventType] = useState<EventCreateType>(
     VOTING_ENABLED ? 'voting' : 'publish',
   );
+  const [imagePhase, setImagePhase] = useState<ImagePhase>('choose');
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [pendingDataUrl, setPendingDataUrl] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [approvedImageUrl, setApprovedImageUrl] = useState<string | null>(null);
+  const [imageBusy, setImageBusy] = useState(false);
   const cityBoxRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedBroad = useMemo(
     () => BROAD_INTERESTS.find((b) => b.id === broadId) ?? null,
@@ -127,6 +138,12 @@ export function CreateEvent() {
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (pendingPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pendingPreviewUrl);
+    };
+  }, [pendingPreviewUrl]);
+
   const selectBroad = (id: string) => {
     setBroadId(id);
     setRelatedIds([]);
@@ -159,6 +176,7 @@ export function CreateEvent() {
       ticketPrice.trim() !== '' &&
       !Number.isNaN(Number(ticketPrice)) &&
       Number(ticketPrice) >= 0 &&
+      !!approvedImageUrl &&
       !!eventType);
 
   const handleNext = () => {
@@ -172,7 +190,9 @@ export function CreateEvent() {
               ? fa.createEvent.needDetails
               : step === 4
                 ? fa.createEvent.needIcon
-                : fa.createEvent.needSchedule,
+                : !approvedImageUrl
+                  ? fa.createEvent.imageNeedApprove
+                  : fa.createEvent.needSchedule,
       );
       return;
     }
@@ -180,9 +200,120 @@ export function CreateEvent() {
     setStep((s) => Math.min(TOTAL_STEPS, s + 1));
   };
 
+  const resetImageChoice = () => {
+    if (pendingPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pendingPreviewUrl);
+    setPendingPreviewUrl(null);
+    setPendingDataUrl(null);
+    setPendingFile(null);
+    setApprovedImageUrl(null);
+    setImagePhase('choose');
+    setImageBusy(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const onPickUploadFile = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError(fa.createEvent.imageUploadFailed);
+      return;
+    }
+    if (pendingPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pendingPreviewUrl);
+    const url = URL.createObjectURL(file);
+    setPendingFile(file);
+    setPendingDataUrl(null);
+    setPendingPreviewUrl(url);
+    setApprovedImageUrl(null);
+    setImagePhase('preview');
+    setError(null);
+  };
+
+  const handleGenerateImage = async () => {
+    if (!generateEnabled) {
+      setError(fa.createEvent.imageGenerateDisabled);
+      return;
+    }
+    setError(null);
+    setImageBusy(true);
+    try {
+      const related = relatedIds
+        .map((id) => categoryFa(categories.find((c) => c.id === id)?.name))
+        .filter(Boolean);
+      const { data, error: fnError } = await supabase.functions.invoke(
+        getLlmApi('image_generator').edgeFunction,
+        {
+          body: {
+            title: title.trim(),
+            description: description.trim(),
+            city: city?.nameFa,
+            category: selectedBroad?.label,
+            related,
+            icon,
+            date,
+            time,
+          },
+        },
+      );
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+      const dataUrl = data?.image_data_url as string | undefined;
+      if (!dataUrl) throw new Error(fa.createEvent.imageGenerateFailed);
+
+      if (pendingPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pendingPreviewUrl);
+      setPendingFile(null);
+      setPendingDataUrl(dataUrl);
+      setPendingPreviewUrl(dataUrl);
+      setApprovedImageUrl(null);
+      setImagePhase('preview');
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || fa.createEvent.imageGenerateFailed);
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
+  const handleApproveImage = async () => {
+    setError(null);
+    setImageBusy(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error(fa.createEvent.mustLoginError);
+
+      let url: string;
+      if (pendingFile) {
+        const ext = pendingFile.name.split('.').pop() || 'jpg';
+        url = await uploadEventImage(user.id, pendingFile, ext);
+      } else if (pendingDataUrl) {
+        url = await uploadEventImageFromDataUrl(user.id, pendingDataUrl);
+      } else {
+        throw new Error(fa.createEvent.imageNeedApprove);
+      }
+
+      if (pendingPreviewUrl?.startsWith('blob:')) URL.revokeObjectURL(pendingPreviewUrl);
+      setApprovedImageUrl(url);
+      setPendingPreviewUrl(url);
+      setPendingFile(null);
+      setPendingDataUrl(null);
+      setImagePhase('approved');
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || fa.createEvent.imageUploadFailed);
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
+  const handleDenyImage = () => {
+    resetImageChoice();
+  };
+
   const handlePublish = async () => {
-    if (!canNext || !city) {
-      setError(fa.createEvent.needSchedule);
+    if (!canNext || !city || !approvedImageUrl) {
+      setError(
+        !approvedImageUrl ? fa.createEvent.imageNeedApprove : fa.createEvent.needSchedule,
+      );
       return;
     }
     setError(null);
@@ -219,6 +350,7 @@ export function CreateEvent() {
           gender_restriction: 'everyone',
           icon,
           ticket_price: Number(ticketPrice),
+          image_url: approvedImageUrl,
           status,
         })
         .select()
@@ -501,6 +633,97 @@ export function CreateEvent() {
                   {fa.createEvent.ticketCurrency}
                 </span>
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <h3 className="text-sm font-bold text-foreground">{fa.createEvent.imageSectionLabel}</h3>
+                <p className="mt-1 text-sm text-muted">{fa.createEvent.imageSectionHint}</p>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => onPickUploadFile(e.target.files?.[0] ?? null)}
+              />
+
+              {imagePhase === 'choose' && (
+                <div className="space-y-2">
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-background px-4 py-6 text-sm font-bold text-foreground transition hover:border-primary hover:bg-primary-light/40"
+                    >
+                      <Upload className="h-4 w-4" />
+                      {fa.createEvent.imageUpload}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={imageBusy || !generateEnabled}
+                      title={!generateEnabled ? fa.createEvent.imageGenerateDisabled : undefined}
+                      onClick={handleGenerateImage}
+                      className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-background px-4 py-6 text-sm font-bold text-foreground transition hover:border-primary hover:bg-primary-light/40 disabled:opacity-40"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      {imageBusy ? fa.createEvent.imageGenerating : fa.createEvent.imageGenerate}
+                    </button>
+                  </div>
+                  {!generateEnabled && (
+                    <p className="text-xs text-muted">{fa.createEvent.imageGenerateDisabled}</p>
+                  )}
+                </div>
+              )}
+
+              {(imagePhase === 'preview' || imagePhase === 'approved') && pendingPreviewUrl && (
+                <div className="overflow-hidden rounded-2xl border border-border bg-background">
+                  <div className="relative aspect-[4/3] bg-primary-light">
+                    <img
+                      src={pendingPreviewUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                    {imagePhase === 'approved' && (
+                      <span className="absolute start-3 top-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white">
+                        {fa.createEvent.imageApproved}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 p-3">
+                    {imagePhase === 'preview' ? (
+                      <>
+                        <button
+                          type="button"
+                          disabled={imageBusy}
+                          onClick={handleApproveImage}
+                          className="flex-1 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary-dark disabled:opacity-40"
+                        >
+                          {imageBusy ? fa.createEvent.imageUploading : fa.createEvent.imageApprove}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={imageBusy}
+                          onClick={handleDenyImage}
+                          className="flex-1 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-bold text-foreground hover:bg-background disabled:opacity-40"
+                        >
+                          {fa.createEvent.imageDeny}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={resetImageChoice}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-bold text-foreground hover:bg-background"
+                      >
+                        <ImagePlus className="h-4 w-4" />
+                        {fa.createEvent.imageChange}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {VOTING_ENABLED && (

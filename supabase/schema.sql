@@ -224,6 +224,7 @@ alter table events add column if not exists targeted_interest_ids uuid[] default
 alter table events add column if not exists pitch text;
 alter table events add column if not exists icon text;
 alter table events add column if not exists ticket_price numeric;
+alter table events add column if not exists image_url text;
 
 -- Users updates
 alter table users add column if not exists is_verified boolean default false;

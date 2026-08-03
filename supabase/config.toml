@@ -45,3 +45,7 @@ verify_jwt = false
 
 [functions.otp-verify]
 verify_jwt = false
+
+# Auth checked inside the function via Authorization header
+[functions.generate-event-image]
+verify_jwt = true

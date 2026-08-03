@@ -14,6 +14,7 @@ type EventDetails = {
   location: string;
   max_attendees: number;
   host_id: string;
+  image_url?: string | null;
   category: { name: string };
   host: { display_name: string; avatar_url: string; is_verified?: boolean };
   gender_restriction?: string;
@@ -45,7 +46,7 @@ export function EventDetail() {
       const { data: eventData } = await supabase
         .from('events')
         .select(`
-          id, title, pitch, datetime, location, max_attendees, host_id, gender_restriction,
+          id, title, pitch, datetime, location, max_attendees, host_id, image_url, gender_restriction,
           category:interest_categories(name),
           host:users!events_host_id_fkey(display_name, avatar_url, is_verified)
         `)
@@ -127,7 +128,7 @@ export function EventDetail() {
 
     if (window.confirm(confirmMsg)) {
       await supabase.from('events').delete().eq('id', event.id);
-      navigate('/discover');
+      navigate('/events');
     }
   };
 
@@ -154,11 +155,20 @@ export function EventDetail() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link to="/discover" className="text-primary font-bold hover:underline mb-6 inline-block">
-        {fa.eventDetail.backToDiscover} &rarr;
+      <Link to="/events" className="text-primary font-bold hover:underline mb-6 inline-block">
+        {fa.eventDetail.backToEvents} &rarr;
       </Link>
       
       <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 relative overflow-hidden">
+        {event.image_url && (
+          <div className="-mx-8 -mt-8 mb-8 aspect-[16/9] overflow-hidden bg-primary-light">
+            <img
+              src={event.image_url}
+              alt={event.title}
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
         {/* Temporary mock to true so you can see the design! */}
         {(event.host?.is_verified || true) && (
           <div 

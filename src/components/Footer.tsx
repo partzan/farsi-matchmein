@@ -30,7 +30,7 @@ export function Footer() {
 
             <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs sm:justify-end sm:text-sm">
               <Link to="/events" className={linkClass}>
-                {fa.footer.discoverEvents}
+                {fa.footer.events}
               </Link>
               <Link to="/about" className={linkClass}>
                 {fa.footer.about}

@@ -168,8 +168,8 @@ export function Onboarding() {
         body: { user_id: user.id }
       }).catch(console.error);
 
-      // 4. Redirect to Discover
-      navigate('/discover');
+      // 4. Redirect to events
+      navigate('/events');
     } catch (err: any) {
       console.error(err);
       setError(err.message || fa.onboarding.errors.genericFail);

@@ -7,7 +7,7 @@ const STEP_GRADIENTS = [
   'from-emerald-400 via-teal-500 to-cyan-600',
 ];
 
-const STEP_LINKS = ['/profile-setup', '/events', '/discover'];
+const STEP_LINKS = ['/profile-setup', '/events', '/events'];
 const STEP_NUMBERS = ['۱', '۲', '۳'];
 
 /** Curvy gradient string pointing to the next step (RTL: right → left). */

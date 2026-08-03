@@ -92,9 +92,6 @@ export function Navbar() {
             <Link to="/events" className={linkClass}>
               {fa.nav.events}
             </Link>
-            <Link to="/discover" className={linkClass}>
-              {fa.nav.discover}
-            </Link>
             {user ? (
               <>
                 <Link to="/my-events" className={linkStrong}>
@@ -160,13 +157,6 @@ export function Navbar() {
                 className="block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary"
               >
                 {fa.nav.events}
-              </Link>
-              <Link
-                to="/discover"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block rounded-xl px-3 py-3 text-base font-semibold text-foreground/80 hover:bg-primary-light hover:text-primary"
-              >
-                {fa.nav.discover}
               </Link>
               {user ? (
                 <>
