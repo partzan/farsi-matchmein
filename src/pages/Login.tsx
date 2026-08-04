@@ -165,10 +165,10 @@ export function Login() {
                 type="button"
                 onClick={() => switchMode('signup')}
                 aria-pressed={mode === 'signup'}
-                className={`rounded-2xl px-3 py-2.5 text-sm font-black transition sm:py-3 sm:text-base ${
+                className={`rounded-2xl border px-3 py-2.5 text-sm font-black transition sm:py-3 sm:text-base ${
                   mode === 'signup'
-                    ? 'bg-gradient-to-l from-accent-orange to-accent-red text-white shadow-md shadow-accent-red/25 ring-2 ring-accent-orange/40'
-                    : 'bg-gradient-to-l from-accent-orange to-accent-red text-white shadow-md shadow-accent-red/20 hover:opacity-95'
+                    ? 'border-accent-orange/40 bg-gradient-to-l from-accent-orange/20 to-accent-red/20 text-accent-red shadow-sm shadow-accent-red/10'
+                    : 'border-border bg-background text-muted hover:border-accent-orange/30 hover:text-foreground'
                 }`}
               >
                 {fa.login.signUp}
@@ -179,7 +179,7 @@ export function Login() {
                 aria-pressed={mode === 'login'}
                 className={`rounded-2xl border px-3 py-2.5 text-sm font-bold transition sm:py-3 sm:text-base ${
                   mode === 'login'
-                    ? 'border-primary bg-primary-light/50 text-primary'
+                    ? 'border-primary/40 bg-gradient-to-l from-primary/15 via-primary-mid/15 to-accent-purple/15 text-primary shadow-sm shadow-primary/10'
                     : 'border-border bg-background text-muted hover:border-primary/40 hover:text-foreground'
                 }`}
               >
