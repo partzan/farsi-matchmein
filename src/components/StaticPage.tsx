@@ -4,14 +4,17 @@ import { fa } from '../locale/fa';
 type Props = {
   title: string;
   lead?: string;
+  showUpdatedAt?: boolean;
   children: React.ReactNode;
 };
 
-export function StaticPage({ title, lead, children }: Props) {
+export function StaticPage({ title, lead, showUpdatedAt = true, children }: Props) {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8" dir="rtl">
       <div className="rounded-3xl border border-border/70 bg-white p-6 shadow-sm sm:p-10">
-        <p className="mb-2 text-xs font-bold text-muted">{fa.info.updatedAt}</p>
+        {showUpdatedAt && (
+          <p className="mb-2 text-xs font-bold text-muted">{fa.info.updatedAt}</p>
+        )}
         <h1 className="text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
           {title}
         </h1>

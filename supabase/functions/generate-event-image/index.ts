@@ -21,39 +21,73 @@ type Body = {
   time?: string;
 };
 
-function buildPrompt(eventData: any): string {
-  const {
-    title,
-    description,
-    category,
-    interests,
-    city,
-    when,
-    moodEmoji,
-  } = eventData;
+function inferGenderMix(text: string): string {
+  const t = text.toLowerCase();
+  const womenOnly = /\bwomen[' ]?s\b|ladies|girls[- ]?only|بانوان|زنانه|دخترانه/.test(t);
+  const menOnly = /\bmen[' ]?s\b|gentlemen|boys[- ]?only|آقایان|مردانه|پسرانه/.test(t);
+  if (womenOnly) return "a group of Iranian women only";
+  if (menOnly) return "a group of Iranian men only";
+  return "a mixed group of Iranian men and women";
+}
 
-  const interestsList = interests?.length ? interests.join(", ") : null;
+function inferGroupSize(category: string, interests: string[]): string {
+  const t = (category + " " + interests.join(" ")).toLowerCase();
+  if (/workshop|class|seminar|conference|كنفرانس|كارگاه/.test(t)) return "8-12 people";
+  if (/party|festival|concert|جشن|كنسرت/.test(t)) return "15-25 people";
+  if (/coffee|book|study|1:1|دورهمی كوچك|كافه/.test(t)) return "3-5 people";
+  return "5-8 people";
+}
+
+function inferVenue(category: string, interests: string[], city?: string): string {
+  const t = (category + " " + interests.join(" ")).toLowerCase();
+  if (/hike|outdoor|park|nature|كوهنوردی|طبيعت|پارك/.test(t))
+    return `an outdoor natural setting${city ? " near " + city : ""}, greenery visible`;
+  if (/gym|sport|fitness|ورزش|باشگاه/.test(t)) return "a modern gym or sports facility";
+  if (/book|study|كتاب/.test(t)) return "a cozy bookstore or library cafe";
+  if (/food|restaurant|dinner|غذا/.test(t)) return "a contemporary restaurant or dining space";
+  return `a modern Iranian cafe or indoor social space${city ? " in " + city : ""}`;
+}
+
+function inferTimeOfDay(when?: string): string {
+  if (!when) return "soft daytime light";
+  const match = when.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return "soft daytime light";
+  const hour = parseInt(match[1], 10);
+  if (hour < 11) return "bright fresh morning light";
+  if (hour < 16) return "clear midday light";
+  if (hour < 19) return "warm golden-hour light";
+  return "warm indoor evening lighting with soft ambient glow";
+}
+
+function buildPrompt(eventData: any): string {
+  const { title, description, category, interests, city, when, moodEmoji } = eventData;
+  const interestsArr = interests?.length ? interests : [];
+  const activityText =
+    [description, category, ...interestsArr].filter(Boolean).join(", ") ||
+    "a casual social meetup";
+
+  const genderMix = inferGenderMix(
+    [category, ...interestsArr, title, description].filter(Boolean).join(" "),
+  );
+  const groupSize = inferGroupSize(category || "", interestsArr);
+  const venue = inferVenue(category || "", interestsArr, city);
+  const lighting = inferTimeOfDay(when);
 
   const lines = [
-    `Create a vibrant, photorealistic promotional photo for a social meetup event.`,
-    `Absolutely no text, letters, numbers, Farsi/Persian script, logos, watermarks, date stamps, or category labels in the image.`,
+    `Create a vibrant, photorealistic promotional photo for a real-life event.`,
+    `Absolutely no text, letters, numbers, Farsi/Persian script, logos, watermarks, date stamps, or category labels anywhere in the image.`,
     ``,
-    `Event title (for scene only — do not render as text): ${title || "Social meetup"}`,
+    `Subjects: ${genderMix}, approximately ${groupSize}, genuinely engaged in the activity below — not posed for camera.`,
+    `Activity: ${activityText}.`,
+    `Location: ${venue}.`,
+    `Lighting/time: ${lighting}.`,
+    ``,
+    `Appearance: contemporary Iranian everyday style, 2025-2026. Women in loose manteau or long coat, casual hijab worn back showing front hairline, fitted jeans, sneakers or boots, natural minimal makeup. Men in fitted t-shirts or casual shirts, jeans/chinos, sneakers, contemporary haircuts. Natural skin tones, realistic proportions, candid unposed expressions.`,
+    ``,
+    `Composition: medium-wide candid shot, shallow depth of field, natural bokeh, photorealistic 35mm DSLR quality, sharp focus on subjects.`,
   ];
 
-  if (description) lines.push(`Description (scene mood only): ${description}`);
-  if (category) lines.push(`Main category vibe: ${category}`);
-  if (interestsList) lines.push(`Related interest vibes: ${interestsList}`);
-  if (city) lines.push(`City: ${city}`);
-  if (moodEmoji) lines.push(`Mood emoji hint: ${moodEmoji}`);
-  if (when) lines.push(`When (do not render as text): ${when}`);
-
-  lines.push(
-    ``,
-    `Style: warm natural light, inviting group atmosphere, Iranian urban cafe/outdoors vibe when relevant.`,
-    ``,
-    `People: contemporary Iranian men and women, 2025-2026 everyday style. Women in loose manteau/long coat, casual hijab worn back showing front hairline, fitted jeans, sneakers or boots, natural minimal makeup. Men in fitted t-shirts or casual shirts, jeans/chinos, sneakers, contemporary haircuts. Natural skin tones, candid unposed expressions, realistic proportions.`,
-  );
+  if (moodEmoji) lines.push(`Mood: reflect the tone of ${moodEmoji}.`);
 
   return lines.join("\n");
 }

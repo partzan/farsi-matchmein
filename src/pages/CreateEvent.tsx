@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, MapPin, ImagePlus, Sparkles, Upload } from 'lucide-react';
+import { Check, Loader2, MapPin, ImagePlus, Sparkles, Upload } from 'lucide-react';
 import { canAccessAdmin, ensureAdministratorRank } from '../lib/admin';
 import {
   BROAD_INTERESTS,
@@ -785,7 +785,11 @@ export function CreateEvent() {
                       onClick={handleGenerateImage}
                       className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border bg-background px-4 py-6 text-sm font-bold text-foreground transition hover:border-primary hover:bg-primary-light/40 disabled:opacity-40"
                     >
-                      <Sparkles className="h-4 w-4" />
+                      {imageBusy ? (
+                        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <Sparkles className="h-4 w-4" aria-hidden />
+                      )}
                       {imageBusy ? fa.createEvent.imageGenerating : fa.createEvent.imageGenerate}
                     </button>
                   </div>

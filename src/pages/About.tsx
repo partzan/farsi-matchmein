@@ -4,7 +4,7 @@ import { fa } from '../locale/fa';
 export function About() {
   const { about } = fa.info;
   return (
-    <StaticPage title={about.title} lead={about.lead}>
+    <StaticPage title={about.title} lead={about.lead} showUpdatedAt={false}>
       {about.paragraphs.map((p) => (
         <p key={p.slice(0, 24)} className="text-sm leading-8 sm:text-base">
           {p}

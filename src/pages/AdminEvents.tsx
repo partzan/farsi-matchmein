@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Check,
   ImagePlus,
+  Loader2,
   MapPin,
   Pencil,
   Plus,
@@ -1082,7 +1083,11 @@ export function AdminEvents() {
                         onClick={handleGenerateImage}
                         className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-sm font-bold text-gray-800 transition hover:border-primary hover:bg-primary/5 disabled:opacity-40"
                       >
-                        <Sparkles className="h-4 w-4" />
+                        {imageBusy ? (
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                        ) : (
+                          <Sparkles className="h-4 w-4" aria-hidden />
+                        )}
                         {imageBusy ? fa.createEvent.imageGenerating : fa.createEvent.imageGenerate}
                       </button>
                     </div>
