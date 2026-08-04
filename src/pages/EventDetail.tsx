@@ -3,8 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCategoryColor } from '../lib/colors';
 import { getAvatarUrl } from '../lib/avatars';
+import {
+  collapseRepeatedPhrase,
+  eventBroadCategoryLabel,
+} from '../lib/matchmaking';
 import { fa } from '../locale/fa';
-import { categoryFa } from '../locale/categoriesFa';
 
 type EventDetails = {
   id: string;
@@ -15,6 +18,7 @@ type EventDetails = {
   max_attendees: number;
   host_id: string;
   image_url?: string | null;
+  most_suitable_broad_ids?: string[] | null;
   category: { name: string };
   host: { display_name: string; avatar_url: string; is_verified?: boolean };
   gender_restriction?: string;
@@ -47,6 +51,7 @@ export function EventDetail() {
         .from('events')
         .select(`
           id, title, pitch, datetime, location, max_attendees, host_id, image_url, gender_restriction,
+          most_suitable_broad_ids,
           category:interest_categories(name),
           host:users!events_host_id_fkey(display_name, avatar_url, is_verified)
         `)
@@ -184,7 +189,8 @@ export function EventDetail() {
           <div>
             <div className="flex flex-wrap gap-2 mb-4">
               <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-bold ${badgeColor.bg} ${badgeColor.text}`}>
-                <span className="flex-shrink-0">★</span> {event.category?.name ? categoryFa(event.category.name) : fa.events.uncategorized}
+                <span className="flex-shrink-0">★</span>{' '}
+                {eventBroadCategoryLabel(event, fa.events.uncategorized)}
               </span>
               {event.gender_restriction === 'female_only' && (
                 <span className="inline-flex items-center px-3 py-1 rounded-sm text-sm font-bold bg-pink-100 text-pink-800 border border-pink-200">
@@ -197,7 +203,9 @@ export function EventDetail() {
                 </span>
               )}
             </div>
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">{event.title}</h1>
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
+              {collapseRepeatedPhrase(event.title)}
+            </h1>
             <div className="flex items-center gap-3 mt-4">
               <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                 <img src={getAvatarUrl(event.host?.avatar_url, event.host_id)} alt="Host" className="w-full h-full object-cover" />

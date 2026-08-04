@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getCategoryColor } from '../lib/colors';
+import {
+  collapseRepeatedPhrase,
+  eventBroadCategoryLabel,
+} from '../lib/matchmaking';
 import { fa } from '../locale/fa';
-import { categoryFa } from '../locale/categoriesFa';
 
 type Event = {
   id: string;
@@ -11,6 +14,7 @@ type Event = {
   pitch: string;
   datetime: string;
   max_attendees: number | null;
+  most_suitable_broad_ids?: string[] | null;
   category: { id: string; name: string };
   host: { display_name: string; is_verified?: boolean };
   rsvps: [{ count: number }];
@@ -32,6 +36,7 @@ export function MyEvents() {
         .select(`
           event:events (
             id, title, pitch, datetime, max_attendees,
+            most_suitable_broad_ids,
             category:interest_categories(id, name),
             host:users!events_host_id_fkey(display_name, is_verified),
             rsvps:event_rsvps(count)
@@ -119,15 +124,17 @@ export function MyEvents() {
                 <div key={event.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden">
                   <div className="flex justify-between items-start mb-4 gap-2">
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-bold max-w-[70%] ${badgeColor.bg} ${badgeColor.text}`}>
-                      <span className="truncate">{event.category?.name ? categoryFa(event.category.name) : fa.events.uncategorized}</span>
+                      <span className="truncate">
+                        {eventBroadCategoryLabel(event, fa.events.uncategorized)}
+                      </span>
                     </span>
                     <span className="text-sm font-bold flex-shrink-0 text-gray-400">
                       {new Date(event.datetime).toLocaleDateString('fa-IR', { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                   
-                  <h3 className="font-extrabold text-xl text-gray-900 mb-2 truncate" title={event.title}>
-                    {event.title}
+                  <h3 className="font-extrabold text-xl text-gray-900 mb-2 truncate" title={collapseRepeatedPhrase(event.title)}>
+                    {collapseRepeatedPhrase(event.title)}
                   </h3>
                   
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2 italic">

@@ -36,17 +36,17 @@ function buildPrompt(eventData: any): string {
 
   const lines = [
     `Create a vibrant, photorealistic promotional photo for a social meetup event.`,
-    `No text overlays, no logos, no watermarks.`,
+    `Absolutely no text, letters, numbers, Farsi/Persian script, logos, watermarks, date stamps, or category labels in the image.`,
     ``,
-    `Event title: ${title || "Social meetup"}`,
+    `Event title (for scene only — do not render as text): ${title || "Social meetup"}`,
   ];
 
-  if (description) lines.push(`Description: ${description}`);
-  if (category) lines.push(`Main category: ${category}`);
-  if (interestsList) lines.push(`Related interests: ${interestsList}`);
+  if (description) lines.push(`Description (scene mood only): ${description}`);
+  if (category) lines.push(`Main category vibe: ${category}`);
+  if (interestsList) lines.push(`Related interest vibes: ${interestsList}`);
   if (city) lines.push(`City: ${city}`);
   if (moodEmoji) lines.push(`Mood emoji hint: ${moodEmoji}`);
-  if (when) lines.push(`When: ${when}`);
+  if (when) lines.push(`When (do not render as text): ${when}`);
 
   lines.push(
     ``,

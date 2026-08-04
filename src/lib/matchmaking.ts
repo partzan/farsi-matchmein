@@ -176,3 +176,104 @@ export function suitabilityLabels(
     })
     .filter(Boolean);
 }
+
+/** PostgREST sometimes returns a 1:1 embed as an array — normalize to one row. */
+export function asCategoryRow(
+  category: { name?: string | null } | { name?: string | null }[] | null | undefined,
+): { name: string } | null {
+  if (!category) return null;
+  const row = Array.isArray(category) ? category[0] : category;
+  const name = row?.name?.trim();
+  return name ? { name } : null;
+}
+
+/**
+ * Collapse exact repeated phrases: "foo foo foo" / "فوفوفو" → "foo" / "فو".
+ * Fixes titles corrupted by join/map bugs that concatenated the same label.
+ */
+export function collapseRepeatedPhrase(text: string | null | undefined): string {
+  const raw = (text || '').trim();
+  if (!raw) return '';
+
+  // Prefer longest unit that tiles the whole string (min length 2, at least 2 repeats)
+  for (let len = Math.floor(raw.length / 2); len >= 2; len--) {
+    if (raw.length % len !== 0) continue;
+    const times = raw.length / len;
+    if (times < 2) continue;
+    const unit = raw.slice(0, len);
+    if (unit.repeat(times) === raw) return unit.trim();
+  }
+  return raw;
+}
+
+/**
+ * Farsi label for the event's broad/main category — NOT a mismatched leaf interest.
+ * Prefer most_suitable_broad_ids, then derive broad from stored leaf category.
+ */
+export function eventBroadCategoryLabel(
+  event: Pick<
+    MatchBrowseEvent,
+    'most_suitable_broad_ids' | 'category'
+  >,
+  fallback = '',
+): string {
+  const broadId = event.most_suitable_broad_ids?.find(Boolean);
+  if (broadId) {
+    const broad = BROAD_INTERESTS.find((b) => b.id === broadId);
+    if (broad?.label) return broad.label;
+  }
+  const leaf = asCategoryRow(event.category);
+  const fromLeaf = broadInterestForCategoryName(leaf?.name);
+  if (fromLeaf?.label) return fromLeaf.label;
+  return fallback;
+}
+
+/**
+ * Pick the leaf interest that best matches the event title among selected related ids.
+ * Avoids storing an arbitrary first related id (e.g. Bodybuilding) as category_id.
+ */
+export function pickPrimaryInterestId(
+  relatedIds: string[],
+  title: string,
+  categories: CategoryRef[],
+  labelFn: (name: string) => string,
+): string | null {
+  if (!relatedIds.length) return null;
+
+  const titleNorm = title.trim();
+  const titleLower = titleNorm.toLowerCase();
+
+  for (const id of relatedIds) {
+    const cat = categories.find((c) => c.id === id);
+    if (!cat?.name) continue;
+    const faLabel = labelFn(cat.name);
+    if (faLabel && titleNorm.includes(faLabel)) return id;
+    if (titleLower.includes(cat.name.toLowerCase())) return id;
+  }
+
+  const KEYWORDS: Array<{ re: RegExp; names: string[] }> = [
+    { re: /فوتسال|فوتبال|futsal|soccer|football/i, names: ['Soccer'] },
+    { re: /بدنسازی|bodybuilding|وزنه|weightlifting|gym/i, names: ['Bodybuilding', 'Weightlifting'] },
+    { re: /یوگا|yoga/i, names: ['Yoga'] },
+    { re: /تنیس|tennis/i, names: ['Tennis'] },
+    { re: /بسکت|basket/i, names: ['Basketball'] },
+    { re: /شنا|swim/i, names: ['Swimming'] },
+    { re: /دوچرخه|cycl/i, names: ['Cycling'] },
+    { re: /دویدن|running|run\b/i, names: ['Running'] },
+    { re: /کشتی|wrestl/i, names: ['Wrestling'] },
+    { re: /رزمی|martial/i, names: ['Martial Arts'] },
+    { re: /مدیتیشن|meditat/i, names: ['Meditation'] },
+  ];
+
+  for (const { re, names } of KEYWORDS) {
+    if (!re.test(titleNorm)) continue;
+    for (const name of names) {
+      const cat = categories.find(
+        (c) => canonicalCategoryName(c.name) === name || c.name === name,
+      );
+      if (cat && relatedIds.includes(cat.id)) return cat.id;
+    }
+  }
+
+  return relatedIds[0];
+}

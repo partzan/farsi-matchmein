@@ -5,8 +5,11 @@ import {
   broadInterestForCategoryName,
   type BroadInterest,
 } from '../lib/broadInterests';
+import {
+  collapseRepeatedPhrase,
+  eventBroadCategoryLabel,
+} from '../lib/matchmaking';
 import { fa } from '../locale/fa';
-import { categoryFa } from '../locale/categoriesFa';
 import { eventBodyFa, eventTitleFa } from '../locale/eventCopyFa';
 
 export type VotingEventItem = {
@@ -16,6 +19,7 @@ export type VotingEventItem = {
   description?: string | null;
   icon?: string | null;
   category?: { id: string; name: string } | null;
+  most_suitable_broad_ids?: string[] | null;
   gender_restriction?: string;
   event_votes?: [{ count: number }];
 };
@@ -31,9 +35,16 @@ type VotingEventCardProps = {
   onUnvote: () => void;
 };
 
-function resolveBroad(categoryName?: string | null): BroadInterest {
+function resolveBroad(
+  event: Pick<VotingEventItem, 'category' | 'most_suitable_broad_ids'>,
+): BroadInterest {
+  const broadId = event.most_suitable_broad_ids?.find(Boolean);
+  if (broadId) {
+    const hit = BROAD_INTERESTS.find((b) => b.id === broadId);
+    if (hit) return hit;
+  }
   return (
-    broadInterestForCategoryName(categoryName) ??
+    broadInterestForCategoryName(event.category?.name) ??
     BROAD_INTERESTS[BROAD_INTERESTS.length - 1]
   );
 }
@@ -49,12 +60,10 @@ export function VotingEventCard({
   onUnvote,
 }: VotingEventCardProps) {
   const [flipped, setFlipped] = useState(false);
-  const broad = resolveBroad(event.category?.name);
+  const broad = resolveBroad(event);
   const displayIcon = event.icon?.trim() || broad.emoji;
-  const categoryLabel = event.category?.name
-    ? categoryFa(event.category.name)
-    : broad.label;
-  const title = eventTitleFa(event.title);
+  const categoryLabel = eventBroadCategoryLabel(event, '') || broad.label;
+  const title = collapseRepeatedPhrase(eventTitleFa(event.title));
   const details = eventBodyFa(event.title, event.description, event.pitch);
 
   return (

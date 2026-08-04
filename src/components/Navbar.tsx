@@ -1,8 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
-import { Menu, X } from 'lucide-react';
-import type { User } from '@supabase/supabase-js';
+import { Menu, User, X } from 'lucide-react';
+import type { User as AuthUser } from '@supabase/supabase-js';
 import { canAccessAdmin } from '../lib/admin';
 import { fa } from '../locale/fa';
 import { BrandLogo } from './BrandLogo';
@@ -26,10 +26,34 @@ function mobileNavClass(isActive: boolean) {
   return isActive ? mobileActive : mobileInactive;
 }
 
+function ProfileNavLabel({
+  avatarUrl,
+  className,
+}: {
+  avatarUrl: string | null;
+  className?: string;
+}) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 ${className ?? ''}`}>
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          className="h-5 w-5 shrink-0 rounded-full object-cover ring-1 ring-border/80"
+        />
+      ) : (
+        <User className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+      )}
+      {fa.nav.profile}
+    </span>
+  );
+}
+
 export function Navbar() {
   const { pathname } = useLocation();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [userRank, setUserRank] = useState<string>('user');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [compact, setCompact] = useState(false);
 
@@ -39,14 +63,22 @@ export function Navbar() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchUserRank(session.user.id);
+      if (session?.user) fetchUserMeta(session.user.id);
+      else {
+        setUserRank('user');
+        setAvatarUrl(null);
+      }
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchUserRank(session.user.id);
+      if (session?.user) fetchUserMeta(session.user.id);
+      else {
+        setUserRank('user');
+        setAvatarUrl(null);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -67,14 +99,22 @@ export function Navbar() {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  const fetchUserRank = async (userId: string) => {
-    const { data } = await supabase.from('users').select('rank').eq('id', userId).single();
-    if (data) setUserRank(data.rank || 'user');
+  const fetchUserMeta = async (userId: string) => {
+    const { data } = await supabase
+      .from('users')
+      .select('rank, avatar_url')
+      .eq('id', userId)
+      .single();
+    if (data) {
+      setUserRank(data.rank || 'user');
+      setAvatarUrl(typeof data.avatar_url === 'string' && data.avatar_url ? data.avatar_url : null);
+    }
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsMobileMenuOpen(false);
+    setAvatarUrl(null);
   };
 
   const closeMobile = () => setIsMobileMenuOpen(false);
@@ -115,16 +155,13 @@ export function Navbar() {
             {user ? (
               <>
                 <NavLink to="/profile" end className={({ isActive }) => desktopNavClass(isActive)}>
-                  {fa.nav.profile}
+                  <ProfileNavLabel avatarUrl={avatarUrl} />
                 </NavLink>
                 <NavLink to="/events" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.events}
                 </NavLink>
                 <NavLink to="/my-events" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.myEvents}
-                </NavLink>
-                <NavLink to="/archive" end className={({ isActive }) => desktopNavClass(isActive)}>
-                  {fa.nav.archive}
                 </NavLink>
                 <NavLink to="/about" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.about}
@@ -148,9 +185,6 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <NavLink to="/archive" end className={({ isActive }) => desktopNavClass(isActive)}>
-                  {fa.nav.archive}
-                </NavLink>
                 <NavLink to="/about" end className={({ isActive }) => desktopNavClass(isActive)}>
                   {fa.nav.about}
                 </NavLink>
@@ -195,7 +229,7 @@ export function Navbar() {
                     onClick={closeMobile}
                     className={({ isActive }) => mobileNavClass(isActive)}
                   >
-                    {fa.nav.profile}
+                    <ProfileNavLabel avatarUrl={avatarUrl} />
                   </NavLink>
                   <NavLink
                     to="/events"
@@ -212,14 +246,6 @@ export function Navbar() {
                     className={({ isActive }) => mobileNavClass(isActive)}
                   >
                     {fa.nav.myEvents}
-                  </NavLink>
-                  <NavLink
-                    to="/archive"
-                    end
-                    onClick={closeMobile}
-                    className={({ isActive }) => mobileNavClass(isActive)}
-                  >
-                    {fa.nav.archive}
                   </NavLink>
                   <NavLink
                     to="/about"
@@ -249,14 +275,6 @@ export function Navbar() {
                 </>
               ) : (
                 <>
-                  <NavLink
-                    to="/archive"
-                    end
-                    onClick={closeMobile}
-                    className={({ isActive }) => mobileNavClass(isActive)}
-                  >
-                    {fa.nav.archive}
-                  </NavLink>
                   <NavLink
                     to="/about"
                     end

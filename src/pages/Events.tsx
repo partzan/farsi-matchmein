@@ -5,6 +5,8 @@ import { useVoteTokens } from '../hooks/useVoteTokens';
 import { VOTING_ENABLED } from '../lib/features';
 import { signInWithGoogle } from '../lib/auth';
 import {
+  collapseRepeatedPhrase,
+  eventBroadCategoryLabel,
   fetchActiveEventsForBrowse,
   fetchUserPrimaryBroadIds,
   filterEventsForViewer,
@@ -12,7 +14,6 @@ import {
 } from '../lib/matchmaking';
 import { supabase } from '../lib/supabase';
 import { fa } from '../locale/fa';
-import { categoryFa } from '../locale/categoriesFa';
 
 type BrowseEvent = MatchBrowseEvent & { isFavorite?: boolean };
 
@@ -235,10 +236,12 @@ export function Events() {
                     )}
                   </div>
                   <div className="space-y-1 p-4">
+                    <h3 className="font-bold text-foreground">
+                      {collapseRepeatedPhrase(event.title)}
+                    </h3>
                     <p className="text-xs font-bold text-primary">
-                      {categoryFa(event.category?.name)}
+                      {eventBroadCategoryLabel(event, fa.events.uncategorized)}
                     </p>
-                    <h3 className="font-bold text-foreground">{event.title}</h3>
                     <p className="text-xs text-muted">
                       {new Date(event.datetime).toLocaleDateString('fa-IR', {
                         month: 'short',
@@ -300,7 +303,9 @@ export function Events() {
                     className="h-14 w-14 rounded-xl object-cover"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-bold text-foreground">{event.title}</p>
+                    <p className="truncate font-bold text-foreground">
+                      {collapseRepeatedPhrase(event.title)}
+                    </p>
                     <p className="text-xs text-muted">
                       {new Date(event.datetime).toLocaleDateString('fa-IR')}
                     </p>

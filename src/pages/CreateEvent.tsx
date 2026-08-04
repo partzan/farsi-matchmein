@@ -13,6 +13,7 @@ import { uploadEventImage, uploadEventImageFromDataUrl } from '../lib/eventImage
 import { iconsForEventSelection } from '../lib/eventIcons';
 import { VOTING_ENABLED } from '../lib/features';
 import { getLlmApi, isLlmApiEnabled, readEdgeFunctionError } from '../lib/llmApis';
+import { pickPrimaryInterestId } from '../lib/matchmaking';
 import { supabase } from '../lib/supabase';
 import { categoryFa } from '../locale/categoriesFa';
 import { fa } from '../locale/fa';
@@ -393,6 +394,10 @@ export function CreateEvent() {
       const status =
         VOTING_ENABLED && eventType === 'voting' ? 'voting' : 'active';
 
+      const primaryCategoryId =
+        pickPrimaryInterestId(relatedIds, title.trim(), categories, categoryFa) ||
+        relatedIds[0];
+
       const { data, error: insertError } = await supabase
         .from('events')
         .insert({
@@ -400,7 +405,7 @@ export function CreateEvent() {
           title: title.trim(),
           pitch: description.trim(),
           description: description.trim(),
-          category_id: relatedIds[0],
+          category_id: primaryCategoryId,
           location: city.nameFa,
           datetime: new Date(`${date}T${time || DEFAULT_TIME}`).toISOString(),
           most_suitable_interest_ids: relatedIds,

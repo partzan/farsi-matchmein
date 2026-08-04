@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { fa } from '../locale/fa';
-import { categoryFa } from '../locale/categoriesFa';
+import {
+  collapseRepeatedPhrase,
+  eventBroadCategoryLabel,
+} from '../lib/matchmaking';
 
 type ArchiveEvent = {
   id: string;
@@ -10,6 +13,7 @@ type ArchiveEvent = {
   datetime: string;
   image_url?: string;
   status?: string;
+  most_suitable_broad_ids?: string[] | null;
   category?: { name: string } | null;
   rsvps?: [{ count: number }];
 };
@@ -27,6 +31,7 @@ export function Archive() {
         .from('events')
         .select(`
           id, title, datetime, image_url, status,
+          most_suitable_broad_ids,
           category:interest_categories(name),
           rsvps:event_rsvps(count)
         `)
@@ -80,10 +85,12 @@ export function Archive() {
                 )}
               </div>
               <div className="space-y-1 p-4">
+                <h3 className="font-bold text-foreground">
+                  {collapseRepeatedPhrase(event.title)}
+                </h3>
                 <p className="text-xs font-bold text-primary">
-                  {categoryFa(event.category?.name)}
+                  {eventBroadCategoryLabel(event, fa.events.uncategorized)}
                 </p>
-                <h3 className="font-bold text-foreground">{event.title}</h3>
                 <p className="text-xs text-muted">
                   {new Date(event.datetime).toLocaleDateString('fa-IR', {
                     year: 'numeric',
