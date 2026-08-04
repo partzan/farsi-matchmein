@@ -281,9 +281,10 @@ export function CreateEvent() {
         throw new Error(fa.createEvent.mustLoginError);
       }
 
-      const related = relatedIds
+      const interests = relatedIds
         .map((id) => categoryFa(categories.find((c) => c.id === id)?.name))
         .filter(Boolean);
+      const when = [date, time].filter(Boolean).join(' ');
       const { data, error: fnError } = await supabase.functions.invoke(
         getLlmApi('image_generator').edgeFunction,
         {
@@ -295,10 +296,9 @@ export function CreateEvent() {
             description: description.trim(),
             city: city?.nameFa,
             category: selectedBroad?.label,
-            related,
-            icon,
-            date,
-            time,
+            interests,
+            moodEmoji: icon,
+            when: when || undefined,
           },
         },
       );

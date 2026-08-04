@@ -12,30 +12,62 @@ type Body = {
   description?: string;
   city?: string;
   category?: string;
+  interests?: string[];
   related?: string[];
+  moodEmoji?: string;
   icon?: string;
+  when?: string;
   date?: string;
   time?: string;
 };
 
-function buildPrompt(body: Body): string {
-  const related = (body.related || []).filter(Boolean).join(", ");
-  return [
-    "Create a vibrant, photorealistic promotional photo for a social meetup event.",
-    "No text overlays, no logos, no watermarks.",
-    `Event title: ${body.title || "Social meetup"}`,
-    body.description ? `Description: ${body.description}` : "",
-    body.category ? `Main category: ${body.category}` : "",
-    related ? `Related interests: ${related}` : "",
-    body.city ? `City: ${body.city}` : "",
-    body.icon ? `Mood emoji hint: ${body.icon}` : "",
-    body.date || body.time
-      ? `When: ${[body.date, body.time].filter(Boolean).join(" ")}`
-      : "",
-    "Style: warm natural light, inviting group atmosphere, Iranian urban cafe/outdoors vibe when relevant.",
-  ]
-    .filter(Boolean)
-    .join("\n");
+function buildPrompt(eventData: any): string {
+  const {
+    title,
+    description,
+    category,
+    interests,
+    city,
+    when,
+    moodEmoji,
+  } = eventData;
+
+  const interestsList = interests?.length ? interests.join(", ") : null;
+
+  const lines = [
+    `Create a vibrant, photorealistic promotional photo for a social meetup event.`,
+    `No text overlays, no logos, no watermarks.`,
+    ``,
+    `Event title: ${title || "Social meetup"}`,
+  ];
+
+  if (description) lines.push(`Description: ${description}`);
+  if (category) lines.push(`Main category: ${category}`);
+  if (interestsList) lines.push(`Related interests: ${interestsList}`);
+  if (city) lines.push(`City: ${city}`);
+  if (moodEmoji) lines.push(`Mood emoji hint: ${moodEmoji}`);
+  if (when) lines.push(`When: ${when}`);
+
+  lines.push(
+    ``,
+    `Style: warm natural light, inviting group atmosphere, Iranian urban cafe/outdoors vibe when relevant.`,
+    ``,
+    `People: contemporary Iranian men and women, 2025-2026 everyday style. Women in loose manteau/long coat, casual hijab worn back showing front hairline, fitted jeans, sneakers or boots, natural minimal makeup. Men in fitted t-shirts or casual shirts, jeans/chinos, sneakers, contemporary haircuts. Natural skin tones, candid unposed expressions, realistic proportions.`,
+  );
+
+  return lines.join("\n");
+}
+
+function normalizeEventData(body: Body) {
+  return {
+    title: body.title,
+    description: body.description,
+    category: body.category,
+    city: body.city,
+    interests: body.interests ?? body.related,
+    moodEmoji: body.moodEmoji ?? body.icon,
+    when: body.when ?? [body.date, body.time].filter(Boolean).join(" "),
+  };
 }
 
 function resolveImageApiUrl(provider: string, configured?: string | null): string {
@@ -149,7 +181,7 @@ serve(async (req) => {
     }
 
     const body = (await req.json()) as Body;
-    const prompt = buildPrompt(body);
+    const prompt = buildPrompt(normalizeEventData(body));
 
     const provider = (Deno.env.get("IMAGE_GENERATOR_PROVIDER") || "openai").toLowerCase();
     const apiKeyRaw =
