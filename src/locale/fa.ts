@@ -854,6 +854,13 @@ export const fa = {
     free: 'رایگان',
     priceUnset: '—',
     currency: 'تومان',
+    statusLabel: 'وضعیت',
+    statusActive: 'فعال',
+    statusVoting: 'رأی‌گیری',
+    statusCompleted: 'برگزار شده',
+    statusCancelled: 'لغو شده',
+    editMostSuitable: 'مناسب‌ترین علایق',
+    editRelatedInterests: 'جزئیات مناسب‌ترین علایق',
   },
   connections: {
     loading: 'در حال بارگذاری ارتباطات...',
