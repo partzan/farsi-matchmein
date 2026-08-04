@@ -41,6 +41,7 @@ function mapImageGenerateError(message: string): string {
 
 const TOTAL_STEPS = 5;
 const RELATED_MAX = 3;
+const LESS_MAX = 3;
 const DEFAULT_TIME = '18:00';
 const generateEnabled = isLlmApiEnabled('image_generator');
 
@@ -54,6 +55,7 @@ export function CreateEvent() {
 
   const [broadId, setBroadId] = useState('');
   const [relatedIds, setRelatedIds] = useState<string[]>([]);
+  const [lessSuitableIds, setLessSuitableIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [icon, setIcon] = useState('');
@@ -84,6 +86,16 @@ export function CreateEvent() {
     if (!selectedBroad) return [] as Category[];
     return categoriesForNames(selectedBroad.specifics, categories as any);
   }, [selectedBroad, categories]);
+
+  /** Less-suitable: sub-interests outside the most-suitable broad. */
+  const lessSuitableOptions = useMemo(() => {
+    if (!selectedBroad) return [] as Category[];
+    const otherNames = BROAD_INTERESTS.filter((b) => b.id !== selectedBroad.id).flatMap(
+      (b) => b.specifics,
+    );
+    const relatedSet = new Set(relatedIds);
+    return categoriesForNames(otherNames, categories as any).filter((c) => !relatedSet.has(c.id));
+  }, [selectedBroad, categories, relatedIds]);
 
   const relatedNames = useMemo(
     () =>
@@ -164,6 +176,7 @@ export function CreateEvent() {
   const selectBroad = (id: string) => {
     setBroadId(id);
     setRelatedIds([]);
+    setLessSuitableIds([]);
     setIcon('');
   };
 
@@ -171,6 +184,15 @@ export function CreateEvent() {
     setRelatedIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (prev.length >= RELATED_MAX) return prev;
+      return [...prev, id];
+    });
+    setLessSuitableIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const toggleLessSuitable = (id: string) => {
+    setLessSuitableIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= LESS_MAX) return prev;
       return [...prev, id];
     });
   };
@@ -381,6 +403,9 @@ export function CreateEvent() {
           category_id: relatedIds[0],
           location: city.nameFa,
           datetime: new Date(`${date}T${time || DEFAULT_TIME}`).toISOString(),
+          most_suitable_interest_ids: relatedIds,
+          less_suitable_interest_ids: lessSuitableIds.length ? lessSuitableIds : null,
+          most_suitable_broad_ids: broadId ? [broadId] : null,
           targeted_interest_ids: relatedIds,
           gender_restriction: 'everyone',
           icon,
@@ -394,6 +419,7 @@ export function CreateEvent() {
       if (insertError) throw insertError;
 
       if (data?.id) {
+        // Trigger also runs compute + notifications on active status; call again for voting drafts.
         await supabase.rpc('compute_event_matches', { new_event_id: data.id });
         await supabase.from('event_rsvps').insert({
           event_id: data.id,
@@ -420,6 +446,9 @@ export function CreateEvent() {
   }
 
   const relatedLabels = relatedIds
+    .map((id) => categoryFa(categories.find((c) => c.id === id)?.name))
+    .filter(Boolean);
+  const lessLabels = lessSuitableIds
     .map((id) => categoryFa(categories.find((c) => c.id === id)?.name))
     .filter(Boolean);
 
@@ -453,14 +482,14 @@ export function CreateEvent() {
           </div>
         )}
 
-        {/* 1 — Primary category */}
+        {/* 1 — Most suitable broad */}
         {step === 1 && (
           <section className="space-y-4">
             <div>
               <h2 className="text-lg font-black text-foreground">
-                {fa.createEvent.choosePrimary}
+                {fa.createEvent.chooseMostSuitable}
               </h2>
-              <p className="mt-1 text-sm text-muted">{fa.createEvent.primaryHint}</p>
+              <p className="mt-1 text-sm text-muted">{fa.createEvent.mostSuitableHint}</p>
             </div>
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
               {BROAD_INTERESTS.map((opt) => (
@@ -475,55 +504,104 @@ export function CreateEvent() {
           </section>
         )}
 
-        {/* 2 — Related interests */}
+        {/* 2 — Most suitable leaves + optional less suitable */}
         {step === 2 && selectedBroad && (
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-end justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-black text-foreground">
-                  {fa.createEvent.chooseRelated}
-                </h2>
-                <p className="mt-1 text-sm text-muted">
-                  {fa.createEvent.relatedHint.replace('{broad}', selectedBroad.label)}
+          <section className="space-y-8">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-black text-foreground">
+                    {fa.createEvent.chooseMostSuitableLeaves}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted">
+                    {fa.createEvent.relatedHint.replace('{broad}', selectedBroad.label)}
+                  </p>
+                </div>
+                <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary">
+                  {fa.createEvent.relatedSelected.replace(
+                    '{count}',
+                    relatedIds.length.toLocaleString('fa-IR'),
+                  )}
+                </span>
+              </div>
+              {relatedSpecifics.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                  {fa.createEvent.noRelated}
                 </p>
-              </div>
-              <span className="rounded-full bg-primary-light px-3 py-1 text-xs font-bold text-primary">
-                {fa.createEvent.relatedSelected.replace(
-                  '{count}',
-                  relatedIds.length.toLocaleString('fa-IR'),
-                )}
-              </span>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {relatedSpecifics.map((cat) => {
+                    const selected = relatedIds.includes(cat.id);
+                    const atLimit = relatedIds.length >= RELATED_MAX && !selected;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => toggleRelated(cat.id)}
+                        disabled={atLimit}
+                        className={`rounded-xl px-3 py-3 text-sm font-bold transition ${
+                          selected
+                            ? `bg-gradient-to-l ${selectedBroad.gradient} text-white shadow-md`
+                            : atLimit
+                              ? 'border border-border bg-background text-muted opacity-50'
+                              : 'border border-border bg-background text-foreground hover:border-primary'
+                        }`}
+                      >
+                        {cat.emoji ? `${cat.emoji} ` : ''}
+                        {categoryFa(cat.name)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            {relatedSpecifics.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
-                {fa.createEvent.noRelated}
-              </p>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {relatedSpecifics.map((cat) => {
-                  const selected = relatedIds.includes(cat.id);
-                  const atLimit = relatedIds.length >= RELATED_MAX && !selected;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => toggleRelated(cat.id)}
-                      disabled={atLimit}
-                      className={`rounded-xl px-3 py-3 text-sm font-bold transition ${
-                        selected
-                          ? `bg-gradient-to-l ${selectedBroad.gradient} text-white shadow-md`
-                          : atLimit
-                            ? 'border border-border bg-background text-muted opacity-50'
-                            : 'border border-border bg-background text-foreground hover:border-primary'
-                      }`}
-                    >
-                      {cat.emoji ? `${cat.emoji} ` : ''}
-                      {categoryFa(cat.name)}
-                    </button>
-                  );
-                })}
+
+            <div className="space-y-4 border-t border-border pt-6">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="text-lg font-black text-foreground">
+                    {fa.createEvent.chooseLessSuitable}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted">{fa.createEvent.lessSuitableHint}</p>
+                </div>
+                <span className="rounded-full bg-background px-3 py-1 text-xs font-bold text-muted">
+                  {fa.createEvent.lessSuitableSelected.replace(
+                    '{count}',
+                    lessSuitableIds.length.toLocaleString('fa-IR'),
+                  )}
+                </span>
               </div>
-            )}
+              {lessSuitableOptions.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+                  {fa.createEvent.noLessSuitable}
+                </p>
+              ) : (
+                <div className="grid max-h-64 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+                  {lessSuitableOptions.map((cat) => {
+                    const selected = lessSuitableIds.includes(cat.id);
+                    const atLimit = lessSuitableIds.length >= LESS_MAX && !selected;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => toggleLessSuitable(cat.id)}
+                        disabled={atLimit}
+                        className={`rounded-xl px-3 py-3 text-sm font-bold transition ${
+                          selected
+                            ? 'border-2 border-primary bg-primary-light text-primary'
+                            : atLimit
+                              ? 'border border-border bg-background text-muted opacity-50'
+                              : 'border border-border bg-background text-foreground hover:border-primary'
+                        }`}
+                      >
+                        {cat.emoji ? `${cat.emoji} ` : ''}
+                        {categoryFa(cat.name)}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </section>
         )}
 
@@ -787,6 +865,9 @@ export function CreateEvent() {
               <p className="mt-2 text-xs font-semibold text-primary">
                 {selectedBroad?.emoji} {selectedBroad?.label}
                 {relatedLabels.length > 0 ? ` · ${relatedLabels.join('، ')}` : ''}
+                {lessLabels.length > 0
+                  ? ` · ${fa.createEvent.chooseLessSuitable}: ${lessLabels.join('، ')}`
+                  : ''}
                 {city ? ` · ${city.nameFa}` : ''}
                 {ticketPrice.trim() !== ''
                   ? ` · ${

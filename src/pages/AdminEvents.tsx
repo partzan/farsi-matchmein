@@ -24,6 +24,9 @@ type AdminEvent = {
   icon?: string | null;
   category: { id: string; name: string } | null;
   targeted_interest_ids: string[] | null;
+  most_suitable_interest_ids?: string[] | null;
+  less_suitable_interest_ids?: string[] | null;
+  most_suitable_broad_ids?: string[] | null;
   rsvps: { count: number }[] | null;
 };
 
@@ -93,7 +96,8 @@ export function AdminEvents() {
       .from('events')
       .select(`
         id, title, description, pitch, location, datetime, max_attendees, gender_restriction, status,
-        ticket_price, icon, targeted_interest_ids,
+        ticket_price, icon, targeted_interest_ids, most_suitable_interest_ids, less_suitable_interest_ids,
+        most_suitable_broad_ids,
         category:interest_categories(id, name),
         rsvps:event_rsvps(count)
       `)
@@ -152,10 +156,17 @@ export function AdminEvents() {
   const categoryCell = (event: AdminEvent) => {
     const names: string[] = [];
     if (event.category?.name) names.push(categoryFa(event.category.name));
-    (event.targeted_interest_ids || []).forEach((id) => {
+    const mostIds = event.most_suitable_interest_ids || event.targeted_interest_ids || [];
+    mostIds.forEach((id) => {
       const label = categoriesById[id];
       if (label && !names.includes(label)) names.push(label);
     });
+    const lessNames = (event.less_suitable_interest_ids || [])
+      .map((id) => categoriesById[id])
+      .filter((label): label is string => !!label && !names.includes(label));
+    if (lessNames.length) {
+      return `${names.join('، ') || fa.events.uncategorized} · ${fa.adminEvents.lessSuitableShort}: ${lessNames.join('، ')}`;
+    }
     return names.length > 0 ? names.join('، ') : fa.events.uncategorized;
   };
 
@@ -201,6 +212,7 @@ export function AdminEvents() {
       icon: form.icon,
     };
 
+    const prevStatus = editing.status;
     const { error: updateError } = await supabase
       .from('events')
       .update(payload)
@@ -211,6 +223,11 @@ export function AdminEvents() {
       console.error(updateError);
       setError(fa.adminEvents.saveFailed);
       return;
+    }
+
+    // Recompute matches when publishing to active (trigger also notifies).
+    if (form.status === 'active' && prevStatus !== 'active') {
+      await supabase.rpc('compute_event_matches', { new_event_id: editing.id });
     }
 
     setMessage(fa.adminEvents.saved);

@@ -4,27 +4,24 @@ import { VoteCounterRail } from '../components/VoteCounterRail';
 import { useVoteTokens } from '../hooks/useVoteTokens';
 import { VOTING_ENABLED } from '../lib/features';
 import { signInWithGoogle } from '../lib/auth';
+import {
+  fetchActiveEventsForBrowse,
+  fetchUserPrimaryBroadIds,
+  filterEventsForViewer,
+  type MatchBrowseEvent,
+} from '../lib/matchmaking';
 import { supabase } from '../lib/supabase';
 import { fa } from '../locale/fa';
 import { categoryFa } from '../locale/categoriesFa';
 
-type BrowseEvent = {
-  id: string;
-  title: string;
-  datetime: string;
-  image_url?: string;
-  gender_restriction?: string;
-  category?: { name: string } | null;
-  rsvps?: [{ count: number }];
-  isFavorite?: boolean;
-};
+type BrowseEvent = MatchBrowseEvent & { isFavorite?: boolean };
 
 type DateFilter = 'all' | 'today' | 'week' | 'month';
 type GenderFilter = 'all' | 'everyone' | 'female_only' | 'male_only';
 
 const PAGE_SIZE = 9;
 
-/** Browse active upcoming events with filters. */
+/** Browse active upcoming events filtered by matchmaking for logged-in users. */
 export function Events() {
   const voteTokens = useVoteTokens();
   const remaining = VOTING_ENABLED ? voteTokens.remaining : null;
@@ -39,6 +36,8 @@ export function Events() {
   const [friendEvents, setFriendEvents] = useState<BrowseEvent[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [primaryBroads, setPrimaryBroads] = useState<string[]>([]);
+  const [hasPrimaryInterests, setHasPrimaryInterests] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -46,21 +45,27 @@ export function Events() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      setUserId(session?.user?.id ?? null);
+      const uid = session?.user?.id ?? null;
+      setUserId(uid);
 
-      const { data } = await supabase
-        .from('events')
-        .select(`
-          id, title, datetime, image_url, gender_restriction, status,
-          category:interest_categories(name),
-          rsvps:event_rsvps(count)
-        `)
-        .eq('status', 'active')
-        .gte('datetime', new Date().toISOString())
-        .order('datetime', { ascending: true })
-        .limit(60);
+      let userBroads: string[] = [];
+      if (uid) {
+        userBroads = await fetchUserPrimaryBroadIds(uid);
+        setPrimaryBroads(userBroads);
+        setHasPrimaryInterests(userBroads.length > 0);
+      } else {
+        setPrimaryBroads([]);
+        setHasPrimaryInterests(false);
+      }
 
-      setEvents((data as unknown as BrowseEvent[]) || []);
+      const { data } = await fetchActiveEventsForBrowse(60);
+      const all = (data as unknown as BrowseEvent[]) || [];
+      setEvents(
+        filterEventsForViewer(all, {
+          isLoggedIn: !!uid,
+          userPrimaryBroads: userBroads,
+        }),
+      );
 
       if (session?.user) {
         const { data: matches } = await supabase
@@ -74,6 +79,7 @@ export function Events() {
           .from('events')
           .select(`
             id, title, datetime, image_url, gender_restriction,
+            most_suitable_broad_ids, most_suitable_interest_ids, targeted_interest_ids,
             category:interest_categories(name),
             rsvps:event_rsvps(count),
             event_matches!inner (match_tier)
@@ -115,6 +121,12 @@ export function Events() {
 
   const shown = filtered.slice(0, visible);
 
+  const subtitle = !userId
+    ? fa.events.browseSubtitleGuest
+    : hasPrimaryInterests
+      ? fa.events.browseSubtitleMatched
+      : fa.events.browseSubtitleNoInterests;
+
   return (
     <div className="relative min-h-[60vh]" dir="rtl">
       {VOTING_ENABLED && <VoteCounterRail remaining={remaining} max={max} />}
@@ -122,7 +134,23 @@ export function Events() {
       <div className={`mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 ${VOTING_ENABLED ? 'lg:ps-28' : ''}`}>
         <header className="mb-6">
           <h1 className="text-2xl font-black text-foreground sm:text-3xl">{fa.events.browseTitle}</h1>
-          <p className="mt-1 text-sm text-muted">{fa.events.browseSubtitle}</p>
+          <p className="mt-1 text-sm text-muted">{subtitle}</p>
+          {userId && hasPrimaryInterests && (
+            <p className="mt-2 text-xs font-semibold text-primary">
+              {fa.events.matchedOnlyHint.replace(
+                '{n}',
+                primaryBroads.length.toLocaleString('fa-IR'),
+              )}
+            </p>
+          )}
+          {userId && !hasPrimaryInterests && (
+            <p className="mt-2 text-xs font-semibold text-muted">
+              {fa.events.setInterestsHint}{' '}
+              <Link to="/profile" className="font-bold text-primary">
+                {fa.nav.profile}
+              </Link>
+            </p>
+          )}
         </header>
 
         <div className="mb-6 flex flex-wrap gap-2 rounded-2xl border border-border bg-white p-3">
@@ -180,7 +208,9 @@ export function Events() {
           </div>
         ) : shown.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-white px-6 py-16 text-center">
-            <p className="text-muted">{fa.events.empty}</p>
+            <p className="text-muted">
+              {hasPrimaryInterests ? fa.events.emptyMatched : fa.events.empty}
+            </p>
           </div>
         ) : (
           <>

@@ -185,6 +185,17 @@ export function ProfileForm({ mode }: ProfileFormProps) {
 
   const [broadIds, setBroadIds] = useState<string[]>([]);
   const [specificIds, setSpecificIds] = useState<string[]>([]);
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: string;
+      title: string;
+      body: string | null;
+      event_id: string | null;
+      read_at: string | null;
+      created_at: string;
+    }>
+  >([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -259,6 +270,20 @@ export function ProfileForm({ mode }: ProfileFormProps) {
           setBroadIds(categoryIdsToBroadIds(high, cats));
           setSpecificIds(normal);
         }
+
+        if (mode === 'edit') {
+          setNotificationsLoading(true);
+          const { data: notes } = await supabase
+            .from('notifications')
+            .select('id, title, body, event_id, read_at, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          if (!cancelled) {
+            setNotifications(notes || []);
+            setNotificationsLoading(false);
+          }
+        }
       } catch (err) {
         console.error('Profile load failed', err);
         setError(fa.profile.errors.saveFailed);
@@ -271,7 +296,15 @@ export function ProfileForm({ mode }: ProfileFormProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [mode]);
+
+  const markNotificationRead = async (id: string) => {
+    const now = new Date().toISOString();
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read_at: n.read_at || now } : n)),
+    );
+    await supabase.from('notifications').update({ read_at: now }).eq('id', id);
+  };
 
   const step1DoneCount = useMemo(() => {
     let n = 0;
@@ -505,6 +538,59 @@ export function ProfileForm({ mode }: ProfileFormProps) {
             />
           )}
         </div>
+
+        {mode === 'edit' && !needsAuth && (
+          <section className="rounded-2xl border border-border bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="mb-3 text-base font-black text-foreground">
+              {fa.profile.notificationsTitle}
+            </h2>
+            {notificationsLoading ? (
+              <p className="text-sm text-muted">{fa.profile.notificationsLoading}</p>
+            ) : notifications.length === 0 ? (
+              <p className="text-sm text-muted">{fa.profile.notificationsEmpty}</p>
+            ) : (
+              <ul className="space-y-2">
+                {notifications.map((n) => (
+                  <li
+                    key={n.id}
+                    className={`flex flex-wrap items-center gap-3 rounded-xl border px-3 py-3 ${
+                      n.read_at
+                        ? 'border-border bg-background/60'
+                        : 'border-primary/30 bg-primary-light/40'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-foreground">{n.title}</p>
+                      {n.body && <p className="mt-0.5 text-xs text-muted">{n.body}</p>}
+                      <p className="mt-1 text-[11px] text-muted">
+                        {new Date(n.created_at).toLocaleString('fa-IR')}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {n.event_id && (
+                        <Link
+                          to={`/event/${n.event_id}`}
+                          className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary hover:text-white"
+                        >
+                          {fa.events.viewDetails}
+                        </Link>
+                      )}
+                      {!n.read_at && (
+                        <button
+                          type="button"
+                          onClick={() => markNotificationRead(n.id)}
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted hover:bg-background"
+                        >
+                          {fa.profile.notificationMarkRead}
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         <FunStepper
           step={step}
